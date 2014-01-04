@@ -1,0 +1,6 @@
+description "Look through the XDG data directories to find things to autostart"
+
+start on started dbus
+task
+
+exec @pkglibexecdir@/xdg-autostart-find

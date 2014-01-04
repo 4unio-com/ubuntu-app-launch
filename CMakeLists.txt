@@ -207,6 +207,14 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/application-click.conf" DESTINATION "
 add_test(application-click.conf.test "${CMAKE_SOURCE_DIR}/test-conffile.sh" "${CMAKE_CURRENT_BINARY_DIR}/application-click.conf")
 
 ####################
+# xdg-autostart-find.conf
+####################
+
+configure_file("xdg-autostart-find.conf.in" "${CMAKE_CURRENT_BINARY_DIR}/xdg-autostart-find.conf" @ONLY)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/xdg-autostart-find.conf" DESTINATION "${CMAKE_INSTALL_DATADIR}/upstart/sessions")
+add_test(xdg-autostart-find.conf.test "${CMAKE_SOURCE_DIR}/test-conffile.sh" "${CMAKE_CURRENT_BINARY_DIR}/xdg-autostart-find.conf")
+
+####################
 # upstart-app-launch-desktop.click-hook
 ####################
 
