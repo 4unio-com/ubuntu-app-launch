@@ -33,8 +33,18 @@ check_dir (gpointer pdir, gpointer pkeyhash)
 static GList *
 find_autostart_dirs (void)
 {
+	GList * retval = NULL;
 
-	return NULL;
+	retval = g_list_prepend(retval, g_build_filename(g_get_user_config_dir(), "autostart", NULL));
+
+	const char * const * system_conf_dir = g_get_system_config_dirs();
+	int i;
+
+	for (i = 0; system_conf_dir[i] != NULL; i++) {
+		retval = g_list_prepend(retval, g_build_filename(system_conf_dir[i], "autostart", NULL));
+	}
+
+	return retval;
 }
 
 int
