@@ -38,6 +38,8 @@ check_dir (gpointer pdirname, gpointer pkeyhash)
 	const gchar * dirname = (const gchar *)pdirname;
 	GHashTable * keyhash = (GHashTable *)pkeyhash;
 
+	g_debug("Looking at directory: %s", dirname);
+
 	if (!g_file_test(dirname, G_FILE_TEST_EXISTS | G_FILE_TEST_IS_DIR)) {
 		return;
 	}
@@ -52,8 +54,10 @@ check_dir (gpointer pdirname, gpointer pkeyhash)
 			continue;
 		}
 
+		g_debug("Desktop file: %s", filename);
+
 		gchar * mutablename = g_strdup(filename);
-		gchar * start_desktop = g_strrstr(mutablename, ".destkop");
+		gchar * start_desktop = g_strrstr(mutablename, ".desktop");
 		start_desktop[0] = '\0';
 
 		if (g_hash_table_contains(keyhash, mutablename)) {
