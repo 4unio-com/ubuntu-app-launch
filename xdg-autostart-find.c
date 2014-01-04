@@ -20,13 +20,52 @@
 
 #include <gio/gio.h>
 
+/* Emit an event to get Upstart to create a job instance with the XDG
+   key that we've found */
+static void
+emit_start (const gchar * xdg_autostart_instance)
+{
+	g_debug("Emiting start for: %s", xdg_autostart_instance);
+
+
+}
+
 /* Look at a directory, ensure it exists and then start looking for
    new autostart keys we can launch */
 static void
-check_dir (gpointer pdir, gpointer pkeyhash)
+check_dir (gpointer pdirname, gpointer pkeyhash)
 {
+	const gchar * dirname = (const gchar *)pdirname;
+	GHashTable * keyhash = (GHashTable *)pkeyhash;
 
+	if (!g_file_test(dirname, G_FILE_TEST_EXISTS | G_FILE_TEST_IS_DIR)) {
+		return;
+	}
 
+	GDir * dir = g_dir_open(dirname, 0, NULL);
+	g_return_if_fail(dir != NULL); /* Shouldn't be NULL considering the check above */
+
+	const gchar * filename = NULL;
+
+	while ((filename = g_dir_read_name(dir)) != NULL) {
+		if (!g_str_has_suffix(filename, ".desktop")) {
+			continue;
+		}
+
+		gchar * mutablename = g_strdup(filename);
+		gchar * start_desktop = g_strrstr(mutablename, ".destkop");
+		start_desktop[0] = '\0';
+
+		if (g_hash_table_contains(keyhash, mutablename)) {
+			g_free(mutablename);
+			continue;
+		}
+
+		g_hash_table_add(keyhash, mutablename);
+		emit_start(mutablename);
+	}
+
+	g_dir_close(dir);
 }
 
 /* Enumerates all the different autostart directories we can have */
