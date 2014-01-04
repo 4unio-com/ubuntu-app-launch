@@ -1,0 +1,9 @@
+description "A process defined by an XDG Autostart file"
+
+start on xdg-autostart-start
+stop on desktop-end
+
+instance $XDG_AUTOSTART_NAME
+
+pre-start exec @pkglibexecdir@/xdg-autostart-parse
+exec @pkglibexecdir@/exec-line-exec
