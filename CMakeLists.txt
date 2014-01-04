@@ -136,7 +136,7 @@ install(TARGETS click-exec RUNTIME DESTINATION "${pkglibexecdir}")
 
 add_executable(xdg-autostart-find xdg-autostart-find.c)
 set_target_properties(xdg-autostart-find PROPERTIES OUTPUT_NAME "xdg-autostart-find")
-target_link_libraries(xdg-autostart-find ${GIO_LIBRARIES})
+target_link_libraries(xdg-autostart-find ${GIO2_LIBRARIES})
 install(TARGETS xdg-autostart-find RUNTIME DESTINATION "${pkglibexecdir}")
 
 ####################
