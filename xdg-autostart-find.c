@@ -20,6 +20,8 @@
 
 #include <gio/gio.h>
 
+GDBusConnection * bus = NULL;
+
 /* Emit an event to get Upstart to create a job instance with the XDG
    key that we've found */
 static void
@@ -27,7 +29,28 @@ emit_start (const gchar * xdg_autostart_instance)
 {
 	g_debug("Emiting start for: %s", xdg_autostart_instance);
 
+	GVariantBuilder tuple;
+	g_variant_builder_init(&tuple, G_VARIANT_TYPE_TUPLE);
 
+	/* building the "sasb" for Upstart */
+	g_variant_builder_add_value(&tuple, g_variant_new_string("xdg-autostart-start")); /* event */
+	g_variant_builder_open(&tuple, G_VARIANT_TYPE_ARRAY); /* environment */
+	g_variant_builder_add_value(&tuple, g_variant_new_take_string(g_strdup_printf("XDG_AUTOSTART_NAME=%s", xdg_autostart_instance)));
+	g_variant_builder_close(&tuple);
+	g_variant_builder_add_value(&tuple, g_variant_new_boolean(FALSE)); /* wait */
+
+	/* Call it */
+	g_dbus_connection_call(bus,
+		"com.ubuntu.Upstart",
+		"/com/ubuntu/Upstart",
+		"com.ubuntu.Upstart0_6",
+		"EmitEvent",
+		g_variant_builder_end(&tuple),
+		NULL, /* reply type */
+		G_DBUS_CALL_FLAGS_NONE,
+		-1, /* default timeout */
+		NULL, /* cancellable */
+		NULL, NULL); /* callback */
 }
 
 /* Look at a directory, ensure it exists and then start looking for
@@ -96,7 +119,7 @@ main (int argc, gchar * argv[])
 	/* Allocate resources */
 	GList * autostart_dirs = NULL;
 	GHashTable * autostart_keys = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
-	GDBusConnection * bus = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
+	bus = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
 
 	/* Make sure we got a bus */
 	g_return_val_if_fail(bus != NULL, -1);
