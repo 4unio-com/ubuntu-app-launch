@@ -47,15 +47,68 @@ check_dir (const gchar * directory, const gchar * task_name)
 		return NULL;
 	}
 
+	g_debug("Found keyfile for '%s' in '%s'", task_name, directory);
 	return keyfile;
+}
+
+/* Check a list of strings for one */
+static inline gboolean
+string_in_list (gchar ** list, gsize length, const gchar * test)
+{
+	int i;
+	for (i = 0; i < length; i++) {
+		if (g_strcmp0(list[i], test) == 0) {
+			break;
+		}
+	}
+
+	if (i == length) {
+		return FALSE;
+	}
+
+	return TRUE;
 }
 
 /* Check to see if an autostart keyfile should be run in this context */
 static gboolean
 valid_keyfile (GKeyFile * keyfile)
 {
+	if (g_key_file_has_key(keyfile, "Desktop Entry", "Hidden", NULL)) {
+		if (g_key_file_get_boolean(keyfile, "Desktop Entry", "Hidden", NULL)) {
+			return FALSE;
+		}
+	}
 
-	return FALSE;
+	const gchar * desktop = g_getenv("XDG_CURRENT_DESKTOP");
+	if (desktop == NULL) {
+		return TRUE;
+	}
+
+	if (g_key_file_has_key(keyfile, "Desktop Entry", "OnlyShowIn", NULL)) {
+		gsize length = 0;
+		gchar ** list = g_key_file_get_string_list(keyfile, "Desktop Entry", "OnlyShowIn", &length, NULL);
+
+		gboolean inlist = string_in_list(list, length, desktop);
+		g_strfreev(list);
+
+		if (!inlist) {
+			return FALSE;
+		}
+	}
+
+	if (g_key_file_has_key(keyfile, "Desktop Entry", "NotShowIn", NULL)) {
+		gsize length = 0;
+		gchar ** list = g_key_file_get_string_list(keyfile, "Desktop Entry", "NotShowIn", &length, NULL);
+
+		gboolean inlist = string_in_list(list, length, desktop);
+		g_strfreev(list);
+
+		if (inlist) {
+			return FALSE;
+		}
+	}
+
+	return TRUE;
 }
 
 /* See if we can find a keyfile for this task, and if it's valid, then
