@@ -140,6 +140,15 @@ target_link_libraries(xdg-autostart-find ${GIO2_LIBRARIES})
 install(TARGETS xdg-autostart-find RUNTIME DESTINATION "${pkglibexecdir}")
 
 ####################
+# xdg-autostart-parse
+####################
+
+add_executable(xdg-autostart-parse xdg-autostart-parse.c)
+set_target_properties(xdg-autostart-parse PROPERTIES OUTPUT_NAME "xdg-autostart-parse")
+target_link_libraries(xdg-autostart-parse ${GLIB2_LIBRARIES})
+install(TARGETS xdg-autostart-parse RUNTIME DESTINATION "${pkglibexecdir}")
+
+####################
 # desktop-hook
 ####################
 
