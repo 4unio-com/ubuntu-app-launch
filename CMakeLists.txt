@@ -145,7 +145,7 @@ install(TARGETS xdg-autostart-find RUNTIME DESTINATION "${pkglibexecdir}")
 
 add_executable(xdg-autostart-parse xdg-autostart-parse.c)
 set_target_properties(xdg-autostart-parse PROPERTIES OUTPUT_NAME "xdg-autostart-parse")
-target_link_libraries(xdg-autostart-parse ${GLIB2_LIBRARIES})
+target_link_libraries(xdg-autostart-parse helpers)
 install(TARGETS xdg-autostart-parse RUNTIME DESTINATION "${pkglibexecdir}")
 
 ####################
