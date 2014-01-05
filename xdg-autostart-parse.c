@@ -25,8 +25,29 @@
 static GKeyFile *
 check_dir (const gchar * directory, const gchar * task_name)
 {
+	gchar * filename = g_strdup_printf("%s.desktop", task_name);
+	gchar * pathname = g_build_filename(directory, "autostart", filename, NULL);
+	g_free(filename);
 
-	return NULL;
+	/* If it doesn't exist, let's just move on */
+	if (!g_file_test(pathname, G_FILE_TEST_EXISTS)) {
+		g_free(pathname);
+		return NULL;
+	}
+
+	GError * error = NULL;
+	GKeyFile * keyfile = g_key_file_new();
+	g_key_file_load_from_file(keyfile, pathname, G_KEY_FILE_NONE, &error);
+	g_free(pathname);
+
+	if (error != NULL) {
+		g_debug("Unable to load keyfile for '%s' in directory '%s'", task_name, directory);
+		g_key_file_free(keyfile);
+		g_error_free(error);
+		return NULL;
+	}
+
+	return keyfile;
 }
 
 /* Check to see if an autostart keyfile should be run in this context */
