@@ -20,11 +20,51 @@
 #include <gio/gio.h>
 #include "helpers.h"
 
+/* Look in a directory for a desktop file of task_name and if
+   it's there return it. */
+static GKeyFile *
+check_dir (const gchar * directory, const gchar * task_name)
+{
+
+	return NULL;
+}
+
+/* Check to see if an autostart keyfile should be run in this context */
+static gboolean
+valid_keyfile (GKeyFile * keyfile)
+{
+
+	return FALSE;
+}
+
+/* See if we can find a keyfile for this task, and if it's valid, then
+   return it for further processing. */
 static GKeyFile *
 find_keyfile (const gchar * task_name)
 {
+	GKeyFile * keyfile = NULL;
 
+	keyfile = check_dir(g_get_user_config_dir(), task_name);
 
+	if (keyfile == NULL) {
+		const char * const * system_conf_dirs = g_get_system_config_dirs();
+		int i;
+
+		for (i = 0; keyfile == NULL && system_conf_dirs[i] != NULL; i++) {
+			keyfile = check_dir(system_conf_dirs[i], task_name);
+		}
+	}
+
+	if (keyfile == NULL) {
+		g_debug("Couldn't find desktop file for '%s'", task_name);
+		return NULL;
+	}
+
+	if (valid_keyfile(keyfile)) {
+		return keyfile;
+	}
+
+	g_key_file_free(keyfile);
 	return NULL;
 }
 
