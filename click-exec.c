@@ -110,7 +110,7 @@ main (int argc, char * argv[])
 	}
 
 	g_debug("Setting 'APP_DIR' to '%s'", output);
-	set_upstart_variable("APP_DIR", output);
+	set_upstart_variable("APP_DIR", output, NULL, NULL);
 
 	set_confined_envvars(package, output);
 
@@ -130,7 +130,7 @@ main (int argc, char * argv[])
 
 	GKeyFile * keyfile = g_key_file_new();
 
-	set_upstart_variable("APP_DESKTOP_FILE_PATH", desktopfile);
+	set_upstart_variable("APP_DESKTOP_FILE_PATH", desktopfile, NULL, NULL);
 	g_key_file_load_from_file(keyfile, desktopfile, 0, &error);
 	if (error != NULL) {
 		g_warning("Unable to load desktop file '%s': %s", desktopfile, error->message);
@@ -150,7 +150,7 @@ main (int argc, char * argv[])
 	tracepoint(upstart_app_launch, click_read_desktop);
 
 	g_debug("Setting 'APP_EXEC' to '%s'", exec);
-	set_upstart_variable("APP_EXEC", exec);
+	set_upstart_variable("APP_EXEC", exec, NULL, NULL);
 
 	g_free(exec);
 	g_key_file_unref(keyfile);
@@ -159,7 +159,7 @@ main (int argc, char * argv[])
 	/* TODO: This is for Surface Flinger, when we drop support we can drop this */
 	gchar * userdesktopfile = g_strdup_printf("%s.desktop", app_id);
 	gchar * userdesktoppath = g_build_filename(g_get_home_dir(), ".local", "share", "applications", userdesktopfile, NULL);
-	set_upstart_variable("APP_DESKTOP_FILE", userdesktoppath);
+	set_upstart_variable("APP_DESKTOP_FILE", userdesktoppath, NULL, NULL);
 	g_free(userdesktopfile);
 	g_free(userdesktoppath);
 

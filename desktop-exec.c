@@ -75,31 +75,31 @@ main (int argc, char * argv[])
 	   http://standards.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html#exec-variables */
 	gchar * execline = desktop_to_exec(keyfile, app_id);
 	g_return_val_if_fail(execline != NULL, 1);
-	set_upstart_variable("APP_EXEC", execline);
+	set_upstart_variable("APP_EXEC", execline, NULL, NULL);
 	g_free(execline);
 
 	if (g_key_file_has_key(keyfile, "Desktop Entry", "Path", NULL)) {
 		gchar * path = g_key_file_get_string(keyfile, "Desktop Entry", "Path", NULL);
-		set_upstart_variable("APP_DIR", path);
+		set_upstart_variable("APP_DIR", path, NULL, NULL);
 		g_free(path);
 	}
 
 	gchar * apparmor = g_key_file_get_string(keyfile, "Desktop Entry", "X-Ubuntu-AppArmor-Profile", NULL);
 	if (apparmor != NULL) {
-		set_upstart_variable("APP_EXEC_POLICY", apparmor);
+		set_upstart_variable("APP_EXEC_POLICY", apparmor, NULL, NULL);
 		set_confined_envvars(app_id, "/usr/share");
 		g_free(apparmor);
 	} else {
-		set_upstart_variable("APP_EXEC_POLICY", "unconfined");
+		set_upstart_variable("APP_EXEC_POLICY", "unconfined", NULL, NULL);
 	}
 
 	g_key_file_free(keyfile);
 
 	/* TODO: This is for Surface Flinger.  When we drop support, we can drop this code */
 	if (desktopfilename != NULL) {
-		set_upstart_variable("APP_DESKTOP_FILE", desktopfilename);
+		set_upstart_variable("APP_DESKTOP_FILE", desktopfilename, NULL, NULL);
 		/* This is not for SF, it's for platform API only above is for SF */
-		set_upstart_variable("APP_DESKTOP_FILE_PATH", desktopfilename);
+		set_upstart_variable("APP_DESKTOP_FILE_PATH", desktopfilename, NULL, NULL);
 		g_free(desktopfilename);
 	}
 

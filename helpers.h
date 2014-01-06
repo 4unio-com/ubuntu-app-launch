@@ -17,7 +17,7 @@
  *     Ted Gould <ted.gould@canonical.com>
  */
 
-#include <glib.h>
+#include <gio/gio.h>
 
 gboolean  app_id_to_triplet      (const gchar *   app_id,
                                   gchar **        package,
@@ -28,7 +28,9 @@ gchar *   manifest_to_desktop    (const gchar *   app_dir,
 gchar *   desktop_to_exec        (GKeyFile *      desktop_file,
                                   const gchar *   from);
 void      set_upstart_variable   (const gchar *   variable,
-                                  const gchar *   value);
+                                  const gchar *   value,
+                                  GAsyncReadyCallback callback,
+                                  gpointer        userdata);
 GArray *  desktop_exec_parse     (const gchar *   execline,
                                   const gchar *   uri_list);
 GKeyFile * keyfile_for_appid     (const gchar *   appid,

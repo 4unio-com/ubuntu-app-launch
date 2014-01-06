@@ -142,6 +142,17 @@ find_keyfile (const gchar * task_name)
 	return NULL;
 }
 
+static void
+env_set (GObject * obj, GAsyncResult * res, gpointer user_data)
+{
+	GVariant * ret = g_dbus_connection_call_finish(G_DBUS_CONNECTION(obj), res, NULL);
+	if (ret != NULL) {
+		g_variant_unref(ret);
+	}
+
+	g_main_loop_quit((GMainLoop *)user_data);
+}
+
 int
 main (int argc, gchar * argv[])
 {
@@ -161,8 +172,12 @@ main (int argc, gchar * argv[])
 	g_debug("Exec Key is: %s", execline);
 	g_return_val_if_fail(execline != NULL, -1);
 
-	set_upstart_variable("APP_EXEC", execline);
+	GMainLoop * loop = g_main_loop_new(NULL, FALSE);
+	set_upstart_variable("APP_EXEC", execline, env_set, loop);
 	g_free(execline);
+
+	g_main_loop_run(loop);
+	g_main_loop_unref(loop);
 
 	g_dbus_connection_flush_sync(bus, NULL, NULL);
 	g_object_unref(bus);
