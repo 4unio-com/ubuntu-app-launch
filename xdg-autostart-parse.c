@@ -69,6 +69,47 @@ string_in_list (gchar ** list, gsize length, const gchar * test)
 	return TRUE;
 }
 
+/* Check the value of a Gsettings key */
+static gboolean
+gsettings_condition_check (const gchar * condition)
+{
+	gchar ** split = g_strsplit(condition, " ", -1);
+	g_debug("Finding Gsettings key '%s' in schema '%s'", split[2], split[1]);
+
+	GSettingsSchema * schema = g_settings_schema_source_lookup(g_settings_schema_source_get_default(), split[1], FALSE);
+	if (schema == NULL) {
+		g_debug("Unable to find schema '%s'", split[1]);
+		g_strfreev(split);
+		return FALSE;
+	}
+
+	if (!g_settings_schema_has_key(schema, split[2])) {
+		g_debug("Schema '%s' doesn't have a key '%s'", split[1], split[2]);
+		g_object_unref(schema);
+		g_strfreev(split);
+		return FALSE;
+	}
+
+	GSettingsSchemaKey * key = g_settings_schema_get_key(schema, split[2]);
+	if (!g_variant_type_equal(G_VARIANT_TYPE_BOOLEAN, g_settings_schema_key_get_value_type(key))) {
+		g_debug("Schema '%s' key '%s' isn't a boolean", split[1], split[2]);
+		g_settings_schema_key_unref(key);
+		g_object_unref(schema);
+		g_strfreev(split);
+		return FALSE;
+	}
+
+	g_settings_schema_key_unref(key);
+	g_clear_object(&schema);
+
+	GSettings * settings = g_settings_new(split[1]);
+	gboolean retval = g_settings_get_boolean(settings, split[2]);
+	g_object_unref(settings);
+
+	g_strfreev(split);
+	return retval;
+}
+
 /* Check to see if an autostart keyfile should be run in this context */
 static gboolean
 valid_keyfile (GKeyFile * keyfile)
@@ -106,6 +147,19 @@ valid_keyfile (GKeyFile * keyfile)
 		if (inlist) {
 			return FALSE;
 		}
+	}
+
+	if (g_key_file_has_key(keyfile, "Desktop Entry", "AutostartCondition", NULL)) {
+		gchar * condition = g_key_file_get_string(keyfile, "Desktop Entry", "AutostartCondition", NULL);
+
+		if (g_str_has_prefix(condition, "GSettings")) {
+			if (!gsettings_condition_check(condition)) {
+				g_free(condition);
+				return FALSE;
+			}
+		}
+
+		g_free(condition);
 	}
 
 	return TRUE;
