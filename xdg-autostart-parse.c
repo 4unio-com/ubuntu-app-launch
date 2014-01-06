@@ -157,12 +157,12 @@ main (int argc, gchar * argv[])
 		return -1;
 	}
 
-	gchar * exec = g_key_file_get_string(keyfile, "Desktop Entry", "Exec", NULL);
-	g_debug("Exec Key is: %s", exec);
-	g_return_val_if_fail(exec != NULL, -1);
+	gchar * execline = g_key_file_get_string(keyfile, "Desktop Entry", "Exec", NULL);
+	g_debug("Exec Key is: %s", execline);
+	g_return_val_if_fail(execline != NULL, -1);
 
-	set_upstart_variable("APP_EXEC", exec);
-	g_free(exec);
+	set_upstart_variable("APP_EXEC", execline);
+	g_free(execline);
 
 	g_dbus_connection_flush_sync(bus, NULL, NULL);
 	g_object_unref(bus);
