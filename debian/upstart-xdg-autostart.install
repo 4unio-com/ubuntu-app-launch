@@ -1,0 +1,4 @@
+usr/share/upstart/sessions/xdg-autostart-find.conf
+usr/share/upstart/sessions/xdg-autostart.conf
+usr/lib/*/upstart-app-launch/xdg-autostart-find
+usr/lib/*/upstart-app-launch/xdg-autostart-parse

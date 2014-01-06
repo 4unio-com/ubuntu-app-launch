@@ -1,2 +1,10 @@
-usr/share/upstart/sessions/*
-usr/lib/*/upstart-app-launch/*
+usr/share/upstart/sessions/application.conf
+usr/share/upstart/sessions/application-click.conf
+usr/share/upstart/sessions/application-legacy.conf
+usr/lib/*/upstart-app-launch/click-exec
+usr/lib/*/upstart-app-launch/desktop-exec
+usr/lib/*/upstart-app-launch/desktop-hook
+usr/lib/*/upstart-app-launch/desktop-single
+usr/lib/*/upstart-app-launch/exec-line-exec
+usr/lib/*/upstart-app-launch/second-exec
+usr/lib/*/upstart-app-launch/zg-report-app

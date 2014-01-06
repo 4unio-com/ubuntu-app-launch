@@ -38,6 +38,15 @@ Description: Upstart Job for Launching Applications
  Upstart Job file and associated utilities that is used to launch
  applications in a standard and confined way.
 
+Package: upstart-xdg-autostart
+Architecture: any
+Depends: ${shlibs:Depends},
+         ${misc:Depends},
+         upstart-app-launch (= ${binary:Version}),
+Description: Upstart Job for Launching XDG Autostart Files
+ Upstart Job file and associated utilities that is used to launch
+ applications defined with XDG Autostart files.
+
 Package: upstart-app-launch-tools
 Architecture: any
 Depends: ${shlibs:Depends},
