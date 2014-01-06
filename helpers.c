@@ -249,7 +249,7 @@ set_upstart_variable (const gchar * variable, const gchar * value)
 	/* Do we want to replace?  Yes, we do! */
 	g_variant_builder_add_value(&builder, g_variant_new_boolean(TRUE));
 
-	g_dbus_connection_call(bus,
+	GVariant * ret = g_dbus_connection_call_sync(bus,
 		DBUS_SERVICE_UPSTART,
 		DBUS_PATH_UPSTART,
 		DBUS_INTERFACE_UPSTART,
@@ -259,7 +259,11 @@ set_upstart_variable (const gchar * variable, const gchar * value)
 		G_DBUS_CALL_FLAGS_NONE,
 		-1, /* timeout */
 		NULL, /* cancelable */
-		NULL, NULL); /* callback */
+		NULL); /* error */
+
+	if (ret != NULL) {
+		g_variant_unref(ret);
+	}
 
 	g_object_unref(bus);
 }
