@@ -149,7 +149,34 @@ valid_keyfile (GKeyFile * keyfile)
 		}
 	}
 
-	/* TODO: TryExec */
+	if (g_key_file_has_key(keyfile, "Desktop Entry", "TryExec", NULL)) {
+		gchar * tryexec = g_key_file_get_string(keyfile, "Desktop Entry", "TryExec", NULL);
+		gchar * inpath = g_find_program_in_path(tryexec);
+
+		/* If we can't find it in the standard path, look for a Path */
+		if (inpath == NULL) {
+			gboolean foundinpath = FALSE;
+
+			if (g_key_file_has_key(keyfile, "Desktop Entry", "Path", NULL)) {
+				gchar * desktoppath = g_key_file_get_string(keyfile, "Desktop Entry", "Path", NULL);
+				gchar * fullpath = g_build_filename(desktoppath, tryexec, NULL);
+
+				foundinpath = g_file_test(fullpath, G_FILE_TEST_EXISTS | G_FILE_TEST_IS_EXECUTABLE);
+
+				g_free(fullpath);
+				g_free(desktoppath);
+			}
+
+			if (!foundinpath) {
+				g_free(tryexec);
+				return FALSE;
+			}
+		} else {
+			g_free(inpath);
+		}
+
+		g_free(tryexec);
+	}
 
 	if (g_key_file_has_key(keyfile, "Desktop Entry", "AutostartCondition", NULL)) {
 		gchar * condition = g_key_file_get_string(keyfile, "Desktop Entry", "AutostartCondition", NULL);
