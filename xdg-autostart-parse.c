@@ -158,6 +158,7 @@ main (int argc, gchar * argv[])
 	}
 
 	gchar * exec = g_key_file_get_string(keyfile, "Desktop Entry", "Exec", NULL);
+	g_debug("Exec Key is: %s", exec);
 	g_return_val_if_fail(exec != NULL, -1);
 
 	set_upstart_variable("APP_EXEC", exec);
