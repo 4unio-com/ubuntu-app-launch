@@ -149,6 +149,8 @@ valid_keyfile (GKeyFile * keyfile)
 		}
 	}
 
+	/* TODO: TryExec */
+
 	if (g_key_file_has_key(keyfile, "Desktop Entry", "AutostartCondition", NULL)) {
 		gchar * condition = g_key_file_get_string(keyfile, "Desktop Entry", "AutostartCondition", NULL);
 
