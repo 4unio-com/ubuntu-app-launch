@@ -5,6 +5,9 @@ stop on desktop-end
 
 instance $XDG_AUTOSTART_NAME
 
+env APP_EXEC="echo Error"
+export APP_EXEC
+
 pre-start exec @pkglibexecdir@/xdg-autostart-parse
 script
 	echo $XDG_AUTOSTART_NAME
