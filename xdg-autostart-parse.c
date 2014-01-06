@@ -73,8 +73,8 @@ string_in_list (gchar ** list, gsize length, const gchar * test)
 static gboolean
 valid_keyfile (GKeyFile * keyfile)
 {
-	if (g_key_file_has_key(keyfile, "Desktop Entry", "Hidden", NULL)) {
-		if (g_key_file_get_boolean(keyfile, "Desktop Entry", "Hidden", NULL)) {
+	if (g_key_file_has_key(keyfile, "Desktop Entry", "NoDisplay", NULL)) {
+		if (g_key_file_get_boolean(keyfile, "Desktop Entry", "NoDisplay", NULL)) {
 			return FALSE;
 		}
 	}
