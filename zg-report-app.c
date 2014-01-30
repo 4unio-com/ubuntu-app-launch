@@ -55,7 +55,11 @@ main (int argc, char * argv[])
 		return 1;
 	}
 
-	const gchar * appid = g_getenv("APP_ID");
+	const gchar * appid = g_getenv("APP_SHORT_ID");
+	if (appid == NULL) {
+		appid = g_getenv("APP_ID");
+	}
+
 	if (appid == NULL) {
 		g_printerr("No App ID defined");
 		return 1;
