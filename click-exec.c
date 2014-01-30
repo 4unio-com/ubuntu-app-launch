@@ -73,8 +73,9 @@ main (int argc, char * argv[])
 	tracepoint(upstart_app_launch, click_starting_sent);
 
 	gchar * package = NULL;
+	gchar * application = NULL;
 	/* 'Parse' the App ID */
-	if (!app_id_to_triplet(app_id, &package, NULL, NULL)) {
+	if (!app_id_to_triplet(app_id, &package, &application, NULL)) {
 		g_warning("Unable to parse App ID: '%s'", app_id);
 		return 1;
 	}
@@ -112,6 +113,11 @@ main (int argc, char * argv[])
 	g_debug("Setting 'APP_DIR' to '%s'", output);
 	set_upstart_variable("APP_DIR", output);
 
+	gchar * shortid = g_strdup_printf("%s_%s", package, application);
+	g_debug("Setting 'APP_SHORT_ID' to '%s'", shortid);
+	set_upstart_variable("APP_SHORT_ID", shortid);
+	g_free(shortid);
+
 	set_confined_envvars(package, output);
 
 	tracepoint(upstart_app_launch, click_configured_env);
@@ -120,6 +126,7 @@ main (int argc, char * argv[])
 
 	g_free(output);
 	g_free(package);
+	g_free(application);
 
 	if (desktopfile == NULL) {
 		g_warning("Desktop file unable to be found");
