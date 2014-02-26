@@ -225,17 +225,6 @@ find_keyfile (const gchar * task_name)
 	return NULL;
 }
 
-static void
-env_set (GObject * obj, GAsyncResult * res, gpointer user_data)
-{
-	GVariant * ret = g_dbus_connection_call_finish(G_DBUS_CONNECTION(obj), res, NULL);
-	if (ret != NULL) {
-		g_variant_unref(ret);
-	}
-
-	g_main_loop_quit((GMainLoop *)user_data);
-}
-
 int
 main (int argc, gchar * argv[])
 {
@@ -256,7 +245,7 @@ main (int argc, gchar * argv[])
 	g_return_val_if_fail(execline != NULL, -1);
 
 	GMainLoop * loop = g_main_loop_new(NULL, FALSE);
-	set_upstart_variable("APP_EXEC", execline, env_set, loop);
+	set_upstart_variable("APP_EXEC", execline, TRUE);
 	g_free(execline);
 
 	g_main_loop_run(loop);

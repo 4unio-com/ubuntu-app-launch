@@ -29,8 +29,7 @@ gchar *   desktop_to_exec        (GKeyFile *      desktop_file,
                                   const gchar *   from);
 void      set_upstart_variable   (const gchar *   variable,
                                   const gchar *   value,
-                                  GAsyncReadyCallback callback,
-                                  gpointer        userdata);
+                                  gboolean        sync);
 GArray *  desktop_exec_parse     (const gchar *   execline,
                                   const gchar *   uri_list);
 GKeyFile * keyfile_for_appid     (const gchar *   appid,
