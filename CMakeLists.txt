@@ -17,7 +17,6 @@ include(Coverage)
 include(UseGlibGeneration)
 include(UseGdbusCodegen)
 include(UseConstantBuilder)
-include(UseLttngGenTp)
 
 # Workaround for libexecdir on debian
 if (EXISTS "/etc/debian_version") 
@@ -61,8 +60,9 @@ include_directories(${DBUS_INCLUDE_DIRS})
 pkg_check_modules(DBUSTEST REQUIRED dbustest-1>=14.04.0)
 include_directories(${DBUSTEST_INCLUDE_DIRS})
 
-pkg_check_modules(LTTNG REQUIRED lttng-ust)
+pkg_check_modules(LTTNG lttng-ust)
 include_directories(${LTTNG_INCLUDE_DIRS})
+include(UseLttngGenTp)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
