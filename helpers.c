@@ -184,14 +184,6 @@ desktop_to_exec (GKeyFile * desktop_file, const gchar * from)
 	}
 	g_free(type);
 
-	if (g_key_file_has_key(desktop_file, "Desktop Entry", "NoDisplay", NULL)) {
-		gboolean nodisplay = g_key_file_get_boolean(desktop_file, "Desktop Entry", "NoDisplay", NULL);
-		if (nodisplay) {
-			g_warning("Desktop file '%s' is set to not display, not copying", from);
-			return NULL;
-		}
-	}
-
 	if (g_key_file_has_key(desktop_file, "Desktop Entry", "Hidden", NULL)) {
 		gboolean hidden = g_key_file_get_boolean(desktop_file, "Desktop Entry", "Hidden", NULL);
 		if (hidden) {

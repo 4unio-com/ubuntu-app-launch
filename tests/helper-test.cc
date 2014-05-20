@@ -382,12 +382,6 @@ TEST_F(HelperTest, DesktopToExec)
 	g_key_file_free(keyfile);
 
 	keyfile = g_key_file_new();
-	ASSERT_TRUE(g_key_file_load_from_file(keyfile, CMAKE_SOURCE_DIR "/applications/nodisplay.desktop", G_KEY_FILE_NONE, NULL));
-	exec = desktop_to_exec(keyfile, "");
-	ASSERT_TRUE(exec == NULL);
-	g_key_file_free(keyfile);
-
-	keyfile = g_key_file_new();
 	ASSERT_TRUE(g_key_file_load_from_file(keyfile, CMAKE_SOURCE_DIR "/applications/no-entry.desktop", G_KEY_FILE_NONE, NULL));
 	exec = desktop_to_exec(keyfile, "");
 	ASSERT_TRUE(exec == NULL);
