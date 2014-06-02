@@ -1,6 +1,9 @@
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
+configure_file ("click-db-dir/test.conf.in" "${CMAKE_CURRENT_BINARY_DIR}/click-db-dir/test.conf" @ONLY)
+set_directory_properties (PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_CURRENT_BINARY_DIR}/click-db-dir/test.conf")
+
 # Google Test
 
 include_directories(${GTEST_INCLUDE_DIR})
@@ -25,32 +28,24 @@ target_link_libraries (helper-handshake-test helpers gtest ${GTEST_LIBS})
 
 add_test (helper-handshake-test helper-handshake-test)
 
-# Second Exec Test
-
-include_directories("${CMAKE_SOURCE_DIR}/libupstart-app-launch")
-
-add_executable (second-exec-test
-	second-exec-test.cc
-	upstart-app-launch-mock.c)
-target_link_libraries (second-exec-test helpers gtest ${GTEST_LIBS} ${LIBUPSTART_LIBRARIES} upstart-launcher second-exec-core)
-add_test (second-exec-test second-exec-test)
-
 # libUAL Test
 
-include_directories("${CMAKE_SOURCE_DIR}/libupstart-app-launch")
+include_directories("${CMAKE_SOURCE_DIR}/libubuntu-app-launch")
 
 add_executable (libual-test
 	libual-test.cc)
-target_link_libraries (libual-test helpers gtest ${GTEST_LIBS} ${LIBUPSTART_LIBRARIES} ${DBUSTEST_LIBRARIES} upstart-launcher)
+target_link_libraries (libual-test helpers gtest ${GTEST_LIBS} ${LIBUPSTART_LIBRARIES} ${DBUSTEST_LIBRARIES} ubuntu-launcher)
 
-# NOTE: Tests are broken into individual runs to avoid problems with libdbus
-add_test (NAME libual-test-start COMMAND libual-test --gtest_filter=*StartApplication)
-add_test (NAME libual-test-stop COMMAND libual-test --gtest_filter=*StopApplication)
-add_test (NAME libual-test-pid COMMAND libual-test --gtest_filter=*ApplicationPid)
-add_test (NAME libual-test-app-id COMMAND libual-test --gtest_filter=*ApplicationId)
-add_test (NAME libual-test-list COMMAND libual-test --gtest_filter=*ApplicationList)
-add_test (NAME libual-test-observer COMMAND libual-test --gtest_filter=*StartStopObserver)
-add_test (NAME libual-test-starting COMMAND libual-test --gtest_filter=*StartingResponses)
+add_test (NAME libual-test COMMAND libual-test)
+
+# Failure Test
+
+add_definitions ( -DAPP_FAILED_TOOL="${CMAKE_BINARY_DIR}/application-failed" )
+
+add_executable (failure-test
+	failure-test.cc)
+target_link_libraries (failure-test gtest ${GTEST_LIBS} ubuntu-launcher)
+add_test (failure-test failure-test)
 
 # ZG Test
 
@@ -73,6 +68,6 @@ add_definitions ( -DDESKTOP_EXEC_TOOL="${CMAKE_BINARY_DIR}/desktop-exec" )
 
 add_executable (exec-util-test
 	exec-util-test.cc)
-target_link_libraries (exec-util-test gtest upstart-launcher ${GTEST_LIBS} ${DBUSTEST_LIBRARIES} ${GIO2_LIBRARIES})
+target_link_libraries (exec-util-test gtest ubuntu-launcher ${GTEST_LIBS} ${DBUSTEST_LIBRARIES} ${GIO2_LIBRARIES})
 add_test (exec-util-test exec-util-test)
 

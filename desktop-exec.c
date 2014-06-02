@@ -25,6 +25,7 @@
 
 #include "helpers.h"
 #include "desktop-exec-trace.h"
+#include "recoverable-problem.h"
 
 int
 main (int argc, char * argv[])
@@ -65,43 +66,84 @@ main (int argc, char * argv[])
 	GKeyFile * keyfile = keyfile_for_appid(app_id, &desktopfilename);
 
 	if (keyfile == NULL) {
-		g_error("Unable to find keyfile for application '%s'", app_id);
+		g_warning("Unable to find keyfile for application '%s'", app_id);
+
+		const gchar * props[3] = {
+			"AppId", NULL,
+			NULL
+		};
+		props[1] = app_id;
+
+		GPid pid = 0;
+		const gchar * launcher_pid = g_getenv("APP_LAUNCHER_PID");
+		if (launcher_pid != NULL) {
+			pid = atoi(launcher_pid);
+		}
+
+		/* Checking to see if we're using the command line tool to create
+		   the appid. Chances are in that case it's a user error, and we
+		   don't need to automatically record it, the user mistyped. */
+		gboolean debugtool = FALSE;
+		if (pid != 0) {
+			gchar * cmdpath = g_strdup_printf("/proc/%d/cmdline", pid);
+			gchar * cmdline = NULL;
+
+			if (g_file_get_contents(cmdpath, &cmdline, NULL, NULL)) {
+				if (g_strstr_len(cmdline, -1, "upstart-app-launch") != NULL) {
+					debugtool = TRUE;
+				}
+
+				g_free(cmdline);
+			} else {
+				/* The caller has already exited, probably a debug tool */
+				debugtool = TRUE;
+			}
+
+			g_free(cmdpath);
+		}
+
+		if (!debugtool) {
+			report_recoverable_problem("upstart-app-launch-invalid-appid", pid, TRUE, props);
+		} else {
+			g_debug("Suppressing appid recoverable error for debug tool");
+		}
 		return 1;
 	}
 
 	tracepoint(upstart_app_launch, desktop_found);
 
-	/* This string is quoted using desktop file quoting:
-	   http://standards.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html#exec-variables */
-	gchar * execline = desktop_to_exec(keyfile, app_id);
-	g_return_val_if_fail(execline != NULL, 1);
-	set_upstart_variable("APP_EXEC", execline);
-	g_free(execline);
+	/* Desktop file name so that libs can get other info from it */
+	if (desktopfilename != NULL) {
+		set_upstart_variable("APP_DESKTOP_FILE_PATH", desktopfilename, FALSE);
+		g_free(desktopfilename);
+	}
 
 	if (g_key_file_has_key(keyfile, "Desktop Entry", "Path", NULL)) {
 		gchar * path = g_key_file_get_string(keyfile, "Desktop Entry", "Path", NULL);
-		set_upstart_variable("APP_DIR", path);
+		set_upstart_variable("APP_DIR", path, FALSE);
 		g_free(path);
 	}
 
 	gchar * apparmor = g_key_file_get_string(keyfile, "Desktop Entry", "X-Ubuntu-AppArmor-Profile", NULL);
 	if (apparmor != NULL) {
-		set_upstart_variable("APP_EXEC_POLICY", apparmor);
+		set_upstart_variable("APP_EXEC_POLICY", apparmor, FALSE);
 		set_confined_envvars(app_id, "/usr/share");
 		g_free(apparmor);
 	} else {
-		set_upstart_variable("APP_EXEC_POLICY", "unconfined");
+		set_upstart_variable("APP_EXEC_POLICY", "unconfined", FALSE);
 	}
+
+	/* This string is quoted using desktop file quoting:
+	   http://standards.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html#exec-variables */
+	gchar * execline = desktop_to_exec(keyfile, app_id);
+	g_return_val_if_fail(execline != NULL, 1);
+	/* NOTE: This should be the last upstart variable set as it is sync
+	   so it will wait for a reply from Upstart implying that Upstart
+	   has seen all the other variable requests we made */
+	set_upstart_variable("APP_EXEC", execline, TRUE);
+	g_free(execline);
 
 	g_key_file_free(keyfile);
-
-	/* TODO: This is for Surface Flinger.  When we drop support, we can drop this code */
-	if (desktopfilename != NULL) {
-		set_upstart_variable("APP_DESKTOP_FILE", desktopfilename);
-		/* This is not for SF, it's for platform API only above is for SF */
-		set_upstart_variable("APP_DESKTOP_FILE_PATH", desktopfilename);
-		g_free(desktopfilename);
-	}
 
 	tracepoint(upstart_app_launch, desktop_handshake_wait);
 
@@ -109,7 +151,6 @@ main (int argc, char * argv[])
 
 	tracepoint(upstart_app_launch, desktop_handshake_complete);
 
-	g_dbus_connection_flush_sync(bus, NULL, NULL);
 	g_object_unref(bus);
 
 	return 0;

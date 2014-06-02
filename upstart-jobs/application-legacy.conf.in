@@ -1,0 +1,24 @@
+description "Application Launching for Legacy Applications"
+author "Ted Gould <ted@canonical.com>"
+
+instance ${APP_ID}-${INSTANCE_ID}
+
+start on application-legacy-start
+stop on application-end or desktop-end
+
+env APP_ID
+env APP_EXEC
+env APP_EXEC_POLICY=""
+env APP_URIS
+env APP_DESKTOP_FILE_PATH
+
+# This will be set to "unconfined" by desktop-exec if there is no confinement defined
+apparmor switch $APP_EXEC_POLICY
+
+pre-start exec @pkglibexecdir@/desktop-exec
+
+# This could be confined
+exec @pkglibexecdir@/exec-line-exec
+
+post-start exec @pkglibexecdir@/zg-report-app open
+post-stop exec @pkglibexecdir@/zg-report-app close

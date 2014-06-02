@@ -18,6 +18,7 @@
  */
 
 #include <gio/gio.h>
+#include <click.h>
 #include "helpers.h"
 #include "click-exec-trace.h"
 
@@ -34,7 +35,7 @@ all off limits.
 
 For information on Click packages and the manifest look at the Click package documentation:
 
-https://click-package.readthedocs.org/en/latest/
+https://click.readthedocs.org/en/latest/
 
 */
 
@@ -81,50 +82,55 @@ main (int argc, char * argv[])
 	}
 
 	/* Check click to find out where the files are */
-	gchar * cmdline = g_strdup_printf("click pkgdir \"%s\"", package);
-
-	gchar * output = NULL;
-	g_spawn_command_line_sync(cmdline, &output, NULL, NULL, &error);
-	g_free(cmdline);
+	ClickDB * db = click_db_new();
+	/* If TEST_CLICK_DB is unset, this reads the system database. */
+	click_db_read(db, g_getenv("TEST_CLICK_DB"), &error);
+	if (error != NULL) {
+		g_warning("Unable to read Click database: %s", error->message);
+		g_error_free(error);
+		g_free(package);
+		return 1;
+	}
+	/* If TEST_CLICK_USER is unset, this uses the current user name. */
+	ClickUser * user = click_user_new_for_user(db, g_getenv("TEST_CLICK_USER"), &error);
+	if (error != NULL) {
+		g_warning("Unable to read Click database: %s", error->message);
+		g_error_free(error);
+		g_free(package);
+		g_object_unref(db);
+		return 1;
+	}
+	gchar * pkgdir = click_user_get_path(user, package, &error);
+	if (error != NULL) {
+		g_warning("Unable to get the Click package directory for %s: %s", package, error->message);
+		g_error_free(error);
+		g_free(package);
+		g_object_unref(user);
+		g_object_unref(db);
+		return 1;
+	}
+	g_object_unref(user);
+	g_object_unref(db);
 
 	tracepoint(upstart_app_launch, click_found_pkgdir);
 
-	/* If we have an extra newline, we can delete it. */
-	gchar * newline = g_strstr_len(output, -1, "\n");
-	if (newline != NULL) {
-		newline[0] = '\0';
-	}
-
-	if (error != NULL) {
-		g_warning("Unable to get the package directory from click: %s", error->message);
-		g_error_free(error);
-		g_free(output); /* Probably not set, but just in case */
+	if (!g_file_test(pkgdir, G_FILE_TEST_EXISTS | G_FILE_TEST_IS_DIR)) {
+		g_warning("Application directory '%s' doesn't exist", pkgdir);
+		g_free(pkgdir);
 		g_free(package);
 		return 1;
 	}
 
-	if (!g_file_test(output, G_FILE_TEST_EXISTS | G_FILE_TEST_IS_DIR)) {
-		g_warning("Application directory '%s' doesn't exist", output);
-		g_free(output);
-		g_free(package);
-		return 1;
-	}
+	g_debug("Setting 'APP_DIR' to '%s'", pkgdir);
+	set_upstart_variable("APP_DIR", pkgdir, FALSE);
 
-	g_debug("Setting 'APP_DIR' to '%s'", output);
-	set_upstart_variable("APP_DIR", output);
-
-	gchar * shortid = g_strdup_printf("%s_%s", package, application);
-	g_debug("Setting 'APP_SHORT_ID' to '%s'", shortid);
-	set_upstart_variable("APP_SHORT_ID", shortid);
-	g_free(shortid);
-
-	set_confined_envvars(package, output);
+	set_confined_envvars(package, pkgdir);
 
 	tracepoint(upstart_app_launch, click_configured_env);
 
-	gchar * desktopfile = manifest_to_desktop(output, app_id);
+	gchar * desktopfile = manifest_to_desktop(pkgdir, app_id);
 
-	g_free(output);
+	g_free(pkgdir);
 	g_free(package);
 	g_free(application);
 
@@ -137,7 +143,7 @@ main (int argc, char * argv[])
 
 	GKeyFile * keyfile = g_key_file_new();
 
-	set_upstart_variable("APP_DESKTOP_FILE_PATH", desktopfile);
+	set_upstart_variable("APP_DESKTOP_FILE_PATH", desktopfile, FALSE);
 	g_key_file_load_from_file(keyfile, desktopfile, 0, &error);
 	if (error != NULL) {
 		g_warning("Unable to load desktop file '%s': %s", desktopfile, error->message);
@@ -157,18 +163,14 @@ main (int argc, char * argv[])
 	tracepoint(upstart_app_launch, click_read_desktop);
 
 	g_debug("Setting 'APP_EXEC' to '%s'", exec);
-	set_upstart_variable("APP_EXEC", exec);
+	/* NOTE: This should be the last upstart variable set as it is sync
+	   so it will wait for a reply from Upstart implying that Upstart
+	   has seen all the other variable requests we made */
+	set_upstart_variable("APP_EXEC", exec, TRUE);
 
 	g_free(exec);
 	g_key_file_unref(keyfile);
 	g_free(desktopfile);
-
-	/* TODO: This is for Surface Flinger, when we drop support we can drop this */
-	gchar * userdesktopfile = g_strdup_printf("%s.desktop", app_id);
-	gchar * userdesktoppath = g_build_filename(g_get_home_dir(), ".local", "share", "applications", userdesktopfile, NULL);
-	set_upstart_variable("APP_DESKTOP_FILE", userdesktoppath);
-	g_free(userdesktopfile);
-	g_free(userdesktoppath);
 
 	tracepoint(upstart_app_launch, click_handshake_wait);
 
@@ -176,7 +178,6 @@ main (int argc, char * argv[])
 
 	tracepoint(upstart_app_launch, click_handshake_complete);
 
-	g_dbus_connection_flush_sync(bus, NULL, NULL);
 	g_object_unref(bus);
 
 	return 0;

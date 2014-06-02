@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<node>
+	<interface name="com.canonical.UpstartAppLaunch">
+		<signal name="UnityResumeRequest">
+			<arg type="s" name="appid" />
+		</signal>
+		<signal name="UnityResumeResponse">
+			<arg type="s" name="appid" />
+		</signal>
+		<signal name="UnityFocusRequest">
+			<arg type="s" name="appid" />
+		</signal>
+		<signal name="UnityStartingBroadcast">
+			<arg type="s" name="appid" />
+		</signal>
+		<signal name="UnityStartingSignal">
+			<arg type="s" name="appid" />
+		</signal>
+		<signal name="ApplicationFailed">
+			<arg type="s" name="appid" />
+			<arg type="s" name="stage" />
+		</signal>
+	</interface>
+</node>

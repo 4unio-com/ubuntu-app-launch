@@ -35,7 +35,9 @@ main (int argc, char * argv[])
 	   http://standards.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html#exec-variables */
 	const gchar * app_exec = g_getenv("APP_EXEC");
 	if (app_exec == NULL) {
-		g_warning("No exec line given, nothing to do except fail");
+		/* There should be no reason for this, a g_error() so that it gets
+		   picked up by Apport and we can track it */
+		g_error("No exec line given, nothing to do except fail");
 		return 1;
 	}
 
@@ -44,7 +46,6 @@ main (int argc, char * argv[])
 
 	/* URIs */
 	const gchar * app_uris = g_getenv("APP_URIS");
-	const gchar * app_desktop = g_getenv("APP_DESKTOP_FILE");
 
 	/* Look to see if we have a directory defined that we
 	   should be using for everything.  If so, change to it
@@ -60,10 +61,20 @@ main (int argc, char * argv[])
 	/* Protect against app directories that have ':' in them */
 	if (appdir != NULL && strchr(appdir, ':') == NULL) {
 		const gchar * path_path = g_getenv("PATH");
+		if (path_path != NULL && path_path[0] == '\0')
+			path_path = NULL;
 		gchar * path_libpath = NULL;
 		const gchar * path_joinable[4] = { 0 };
 
+		const gchar * lib_path = g_getenv("LD_LIBRARY_PATH");
+		if (lib_path != NULL && lib_path[0] == '\0')
+			lib_path = NULL;
+		gchar * lib_libpath = g_build_filename(appdir, "lib", NULL);
+		const gchar * lib_joinable[4] = { 0 };
+
 		const gchar * import_path = g_getenv("QML2_IMPORT_PATH");
+		if (import_path != NULL && import_path[0] == '\0')
+			import_path = NULL;
 		gchar * import_libpath = NULL;
 		const gchar * import_joinable[4] = { 0 };
 
@@ -78,6 +89,10 @@ main (int argc, char * argv[])
 			path_joinable[1] = appdir;
 			path_joinable[2] = path_path;
 
+			lib_joinable[0] = import_libpath;
+			lib_joinable[1] = lib_libpath;
+			lib_joinable[2] = lib_path;
+
 			/* Need to check whether the original is NULL because we're
 			   appending instead of prepending */
 			if (import_path == NULL) {
@@ -90,6 +105,9 @@ main (int argc, char * argv[])
 			path_joinable[0] = appdir;
 			path_joinable[1] = path_path;
 
+			lib_joinable[0] = lib_libpath;
+			lib_joinable[1] = lib_path;
+
 			import_joinable[0] = import_path;
 		}
 
@@ -97,6 +115,11 @@ main (int argc, char * argv[])
 		g_setenv("PATH", newpath, TRUE);
 		g_free(path_libpath);
 		g_free(newpath);
+
+		gchar * newlib = g_strjoinv(":", (gchar**)lib_joinable);
+		g_setenv("LD_LIBRARY_PATH", newlib, TRUE);
+		g_free(lib_libpath);
+		g_free(newlib);
 
 		if (import_joinable[0] != NULL) {
 			gchar * newimport = g_strjoinv(":", (gchar**)import_joinable);
@@ -115,12 +138,6 @@ main (int argc, char * argv[])
 
 	tracepoint(upstart_app_launch, exec_parse_complete);
 
-	/* Surface flinger check */
-	if (g_getenv("USING_SURFACE_FLINGER") != NULL && app_desktop != NULL) {
-		gchar * sf = g_strdup_printf("--desktop_file_hint=%s", app_desktop);
-		g_array_append_val(newargv, sf);
-	}
-
 	/* Now exec */
 	gchar ** nargv = (gchar**)g_array_free(newargv, FALSE);
 
@@ -129,7 +146,9 @@ main (int argc, char * argv[])
 	int execret = execvp(nargv[0], nargv);
 
 	if (execret != 0) {
-		g_warning("Unable to exec: %s", strerror(errno));
+		gchar * execprint = g_strjoinv(" ", nargv);
+		g_warning("Unable to exec '%s' in '%s': %s", execprint, appdir, strerror(errno));
+		g_free(execprint);
 	}
 
 	return execret;
