@@ -68,5 +68,5 @@ Test-case ubuntu-app-launch/desktop-cache-correct
         <dd>NOTE: Other systems (Wine) use this area as well, don't do that on live systems, may destroy data</dd>
     <dt>Restart the user session</dt>
     <dt>Verify the desktop files in <tt>~/.local/share/applications</tt> were built by UAL</dt>
-        <dd>Each desktop file should have a desktop key <tt>X-Ubuntu-Creator=ubuntu-app-launch</tt></dd>
+        <dd>Each desktop file should have a desktop key <tt>X-Ubuntu-Application-ID</tt></dd>
 </dl>
