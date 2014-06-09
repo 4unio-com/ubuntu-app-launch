@@ -61,3 +61,12 @@ Test-case ubuntu-app-launch/correct-job-type
     <dt>Verify the clock app is running under the <tt>application-click</tt> upstart job</dt>
         <dd>Running <tt>initctl list | grep application-click | grep com.ubuntu.clock</tt> should return a single entry</dd>
 </dl>
+
+Test-case ubuntu-app-launch/desktop-cache-correct
+<dl>
+    <dt>Remove desktop file cache: <tt>rm -rf ~/.local/share/applications</tt></dt>
+        <dd>NOTE: Other systems (Wine) use this area as well, don't do that on live systems, may destroy data</dd>
+    <dt>Restart the user session</dt>
+    <dt>Verify the desktop files in <tt>~/.local/share/applications</tt> were built by UAL</dt>
+        <dd>Each desktop file should have a desktop key <tt>X-Ubuntu-Creator=ubuntu-app-launch</tt></dd>
+</dl>
