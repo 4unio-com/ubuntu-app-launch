@@ -416,6 +416,9 @@ ubuntu_app_launch_stop_application (const gchar * appid)
 static gboolean
 use_oom_helper (GPid pid, const gchar * oomscore)
 {
+	g_debug("OOM Helper disabled for pid: %d", pid);
+	return TRUE;
+
 	GError * error = NULL;
 	const gchar * args[4] = {
 		OOM_HELPER,
