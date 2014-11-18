@@ -1,3 +1,11 @@
+ubuntu-app-launch (0.4+15.04.20141118~rtm-0ubuntu1) 14.09; urgency=low
+
+  [ Ted Gould ]
+  * Attenting to connect to cgmanager for 1 second and then failing and
+    reporting a recoverable error. (LP: #1377332)
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Tue, 18 Nov 2014 21:09:39 +0000
+
 ubuntu-app-launch (0.4+14.10.20141031~rtm-0ubuntu1) 14.09; urgency=medium
 
   [ Ted Gould ]
