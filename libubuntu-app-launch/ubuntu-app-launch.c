@@ -1304,7 +1304,7 @@ pids_for_appid (const gchar * appid)
 
 	if (is_click(appid)) {
 		GList * pids = pids_from_cgroup(cgmanager, "application-click", appid);
-		g_clear_object(&cgmanager);
+		cgroup_manager_unref(cgmanager);
 
 		ual_tracepoint(pids_list_finished, appid, g_list_length(pids));
 		return pids;
@@ -1312,7 +1312,7 @@ pids_for_appid (const gchar * appid)
 		gchar * jobname = g_strdup_printf("%s-", appid);
 		GList * pids = pids_from_cgroup(cgmanager, "application-legacy", jobname);
 		g_free(jobname);
-		g_clear_object(&cgmanager);
+		cgroup_manager_unref(cgmanager);
 
 		ual_tracepoint(pids_list_finished, appid, g_list_length(pids));
 		return pids;
@@ -1343,7 +1343,7 @@ pids_for_appid (const gchar * appid)
 	g_array_free(apps, TRUE);
 	g_object_unref(con);
 
-	g_clear_object(&cgmanager);
+	cgroup_manager_unref(cgmanager);
 
 	ual_tracepoint(pids_list_finished, appid, g_list_length(pids));
 	return pids;
