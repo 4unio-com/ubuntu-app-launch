@@ -18,10 +18,9 @@
  */
 
 #include "ubuntu-app-launch.h"
-#include <json-glib/json-glib.h>
-#include <click.h>
 #include <upstart.h>
 #include <gio/gio.h>
+#include <gio/gunixfdlist.h>
 #include <string.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -33,11 +32,18 @@
 #include "ual-tracepoint.h"
 #include "click-exec.h"
 #include "desktop-exec.h"
+#include "recoverable-problem.h"
+#include "proxy-socket-demangler.h"
+#include "app-info.h"
 
 static void apps_for_job (GDBusConnection * con, const gchar * name, GArray * apps, gboolean truncate_legacy);
 static void free_helper (gpointer value);
 static GList * pids_for_appid (const gchar * appid);
 int kill (pid_t pid, int signal);
+static gchar * escape_dbus_string (const gchar * input);
+
+G_DEFINE_QUARK(UBUNTU_APP_LAUNCH_PROXY_PATH, proxy_path);
+G_DEFINE_QUARK(UBUNTU_APP_LAUNCH_MIR_FD, mir_fd);
 
 /* Function to take the urls and escape them so that they can be
    parsed on the other side correctly. */
@@ -201,6 +207,19 @@ is_click (const gchar * appid)
 	return click;
 }
 
+/* Determine whether an AppId is realated to a Libertine container by
+   checking the container and program name. */
+static gboolean
+is_libertine (const gchar * appid)
+{
+	if (app_info_libertine(appid, NULL, NULL)) {
+		g_debug("Libertine application detected: %s", appid);
+		return TRUE;
+	} else {
+		return FALSE;
+	}
+}
+
 static gboolean
 start_application_core (const gchar * appid, const gchar * const * uris, gboolean test)
 {
@@ -213,6 +232,14 @@ start_application_core (const gchar * appid, const gchar * const * uris, gboolea
 
 	gboolean click = is_click(appid);
 	ual_tracepoint(libual_determine_type, appid, click ? "click" : "legacy");
+
+	/* Figure out if it is libertine */
+	gboolean libertine = FALSE;
+	if (!click) {
+		libertine = is_libertine(appid);
+	}
+
+	ual_tracepoint(libual_determine_libertine, appid, libertine ? "container" : "host");
 
 	/* Figure out the DBus path for the job */
 	const gchar * jobpath = NULL;
@@ -251,7 +278,7 @@ start_application_core (const gchar * appid, const gchar * const * uris, gboolea
 	}
 
 	if (!click) {
-		if (legacy_single_instance(appid)) {
+		if (libertine || legacy_single_instance(appid)) {
 			g_variant_builder_add_value(&builder, g_variant_new_string("INSTANCE_ID="));
 		} else {
 			gchar * instanceid = g_strdup_printf("INSTANCE_ID=%" G_GUINT64_FORMAT, g_get_real_time());
@@ -267,7 +294,7 @@ start_application_core (const gchar * appid, const gchar * const * uris, gboolea
 	if (click) {
 		setup_complete = click_task_setup(con, appid, (EnvHandle*)&builder);
 	} else {
-		setup_complete = desktop_task_setup(con, appid, (EnvHandle*)&builder);
+		setup_complete = desktop_task_setup(con, appid, (EnvHandle*)&builder, libertine);
 	}
 
 	if (setup_complete) {
@@ -687,7 +714,7 @@ ubuntu_app_launch_application_log_path (const gchar * appid)
 		return path;
 	}
 
-	if (legacy_single_instance(appid)) {
+	if (!is_libertine(appid) && legacy_single_instance(appid)) {
 		gchar * appfile = g_strdup_printf("application-legacy-%s-.log", appid);
 		path =  g_build_filename(g_get_user_cache_dir(), "upstart", appfile, NULL);
 		g_free(appfile);
@@ -719,6 +746,18 @@ ubuntu_app_launch_application_log_path (const gchar * appid)
 	g_object_unref(con);
 
 	return path;
+}
+
+gboolean
+ubuntu_app_launch_application_info (const gchar * appid, gchar ** appdir, gchar ** appdesktop)
+{
+	if (is_click(appid)) {
+		return app_info_click(appid, appdir, appdesktop);
+	} else if (is_libertine(appid)) {
+		return app_info_libertine(appid, appdir, appdesktop);
+	} else {
+		return app_info_legacy(appid, appdir, appdesktop);
+	}
 }
 
 static GDBusConnection *
@@ -1483,7 +1522,7 @@ pids_for_appid (const gchar * appid)
 
 		ual_tracepoint(pids_list_finished, appid, g_list_length(pids));
 		return pids;
-	} else if (legacy_single_instance(appid)) {
+	} else if (!is_libertine(appid) && legacy_single_instance(appid)) {
 		gchar * jobname = g_strdup_printf("%s-", appid);
 		GList * pids = pids_from_cgroup(cgmanager, "application-legacy", jobname);
 		g_free(jobname);
@@ -1583,153 +1622,23 @@ ubuntu_app_launch_app_id_parse (const gchar * appid, gchar ** package, gchar ** 
 	return TRUE;
 }
 
-/* Try and get a manifest and do a couple sanity checks on it */
-static JsonObject *
-get_manifest (const gchar * pkg)
-{
-	/* Get the directory from click */
-	GError * error = NULL;
-
-	ClickDB * db = click_db_new();
-	/* If TEST_CLICK_DB is unset, this reads the system database. */
-	click_db_read(db, g_getenv("TEST_CLICK_DB"), &error);
-	if (error != NULL) {
-		g_warning("Unable to read Click database: %s", error->message);
-		g_error_free(error);
-		g_object_unref(db);
-		return NULL;
-	}
-	/* If TEST_CLICK_USER is unset, this uses the current user name. */
-	ClickUser * user = click_user_new_for_user(db, g_getenv("TEST_CLICK_USER"), &error);
-	if (error != NULL) {
-		g_warning("Unable to read Click database: %s", error->message);
-		g_error_free(error);
-		g_object_unref(db);
-		return NULL;
-	}
-	g_object_unref(db);
-	JsonObject * manifest = click_user_get_manifest(user, pkg, &error);
-	if (error != NULL) {
-		g_warning("Unable to get manifest for '%s' package: %s", pkg, error->message);
-		g_error_free(error);
-		g_object_unref(user);
-		return NULL;
-	}
-	g_object_unref(user);
-
-	if (!json_object_has_member(manifest, "version")) {
-		g_warning("Manifest file for package '%s' does not have a version", pkg);
-		json_object_unref(manifest);
-		return NULL;
-	}
-
-	return manifest;
-}
-
-/* Types of search we can do for an app name */
-typedef enum _app_name_t app_name_t;
-enum _app_name_t {
-	APP_NAME_ONLY,
-	APP_NAME_FIRST,
-	APP_NAME_LAST
-};
-
-/* Figure out the app name if it's one of the keywords */
-static const gchar *
-manifest_app_name (JsonObject ** manifest, const gchar * pkg, const gchar * original_app)
-{
-	app_name_t app_type = APP_NAME_FIRST;
-
-	if (original_app == NULL) {
-		/* first */
-	} else if (g_strcmp0(original_app, "first-listed-app") == 0) {
-		/* first */
-	} else if (g_strcmp0(original_app, "last-listed-app") == 0) {
-		app_type = APP_NAME_LAST;
-	} else if (g_strcmp0(original_app, "only-listed-app") == 0) {
-		app_type = APP_NAME_ONLY;
-	} else {
-		return original_app;
-	}
-
-	if (*manifest == NULL) {
-		*manifest = get_manifest(pkg);
-	}
-
-	JsonObject * hooks = json_object_get_object_member(*manifest, "hooks");
-
-	if (hooks == NULL) {
-		return NULL;
-	}
-
-	GList * apps = json_object_get_members(hooks);
-	if (apps == NULL) {
-		return NULL;
-	}
-
-	const gchar * retapp = NULL;
-
-	switch (app_type) {
-	case APP_NAME_ONLY:
-		if (g_list_length(apps) == 1) {
-			retapp = (const gchar *)apps->data;
-		}
-		break;
-	case APP_NAME_FIRST:
-		retapp = (const gchar *)apps->data;
-		break;
-	case APP_NAME_LAST:
-		retapp = (const gchar *)(g_list_last(apps)->data);
-		break;
-	default:
-		break;
-	}
-
-	g_list_free(apps);
-
-	return retapp;
-}
-
-/* Figure out the app version using the manifest */
-static const gchar *
-manifest_version (JsonObject ** manifest, const gchar * pkg, const gchar * original_ver)
-{
-	if (original_ver != NULL && g_strcmp0(original_ver, "current-user-version") != 0) {
-		return original_ver;
-	} else  {
-		if (*manifest == NULL) {
-			*manifest = get_manifest(pkg);
-		}
-		g_return_val_if_fail(*manifest != NULL, NULL);
-
-		return g_strdup(json_object_get_string_member(*manifest, "version"));
-	}
-
-	return NULL;
-}
-
+/* Figure out whether we're a libertine container app or a click and then
+   choose which function to use */
 gchar *
 ubuntu_app_launch_triplet_to_app_id (const gchar * pkg, const gchar * app, const gchar * ver)
 {
 	g_return_val_if_fail(pkg != NULL, NULL);
 
-	const gchar * version = NULL;
-	const gchar * application = NULL;
-	JsonObject * manifest = NULL;
+	/* Check if is a libertine container */
+	gchar * libertinepath = g_build_filename(g_get_user_cache_dir(), "libertine-container", pkg, NULL);
+	gboolean libcontainer = g_file_test(libertinepath, G_FILE_TEST_EXISTS);
+	g_free(libertinepath);
 
-	version = manifest_version(&manifest, pkg, ver);
-	g_return_val_if_fail(version != NULL, NULL);
-
-	application = manifest_app_name(&manifest, pkg, app);
-	g_return_val_if_fail(application != NULL, NULL);
-
-	gchar * retval = g_strdup_printf("%s_%s_%s", pkg, application, version);
-
-	/* The object may hold allocation for some of our strings used above */
-	if (manifest)
-		json_object_unref(manifest);
-
-	return retval;
+	if (libcontainer) {
+		return libertine_triplet_to_app_id(pkg, app, ver);
+	} else {
+		return click_triplet_to_app_id(pkg, app, ver);
+	}
 }
 
 /* Print an error if we couldn't start it */
@@ -1754,7 +1663,7 @@ start_helper_callback (GObject * obj, GAsyncResult * res, gpointer user_data)
    to define the instance.  In the end there's only one job with
    an array of instances. */
 static gboolean
-start_helper_core (const gchar * type, const gchar * appid, const gchar * const * uris, const gchar * instance)
+start_helper_core (const gchar * type, const gchar * appid, const gchar * const * uris, const gchar * instance, const gchar * mirsocketpath)
 {
 	GDBusConnection * con = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
 	g_return_val_if_fail(con != NULL, FALSE);
@@ -1776,6 +1685,11 @@ start_helper_core (const gchar * type, const gchar * appid, const gchar * const 
 
 	if (instance != NULL) {
 		g_variant_builder_add_value(&builder, g_variant_new_take_string(g_strdup_printf("INSTANCE_ID=%s", instance)));
+	}
+
+	if (mirsocketpath != NULL) {
+		g_variant_builder_add_value(&builder, g_variant_new_take_string(g_strdup_printf("UBUNTU_APP_LAUNCH_DEMANGLE_PATH=%s", mirsocketpath)));
+		g_variant_builder_add_value(&builder, g_variant_new_take_string(g_strdup_printf("UBUNTU_APP_LAUNCH_DEMANGLE_NAME=%s", g_dbus_connection_get_unique_name(con))));
 	}
 
 	g_variant_builder_close(&builder);
@@ -1807,7 +1721,7 @@ ubuntu_app_launch_start_helper (const gchar * type, const gchar * appid, const g
 	g_return_val_if_fail(appid != NULL, FALSE);
 	g_return_val_if_fail(g_strstr_len(type, -1, ":") == NULL, FALSE);
 
-	return start_helper_core(type, appid, uris, NULL);
+	return start_helper_core(type, appid, uris, NULL, NULL);
 }
 
 gchar *
@@ -1819,10 +1733,254 @@ ubuntu_app_launch_start_multiple_helper (const gchar * type, const gchar * appid
 
 	gchar * instanceid = g_strdup_printf("%" G_GUINT64_FORMAT, g_get_real_time());
 
-	if (start_helper_core(type, appid, uris, instanceid)) {
+	if (start_helper_core(type, appid, uris, instanceid, NULL)) {
 		return instanceid;
 	}
 
+	g_free(instanceid);
+	return NULL;
+}
+
+/* Transfer from Mir's data structure to ours */
+static void
+get_mir_session_fd_helper (MirPromptSession * session, size_t count, int const * fdin, void * user_data)
+{
+	if (count != 1) {
+		g_warning("Mir trusted session returned %d FDs instead of one", (int)count);
+		return;
+	}
+
+	int * retfd = (int *)user_data;
+	*retfd = fdin[0];
+}
+
+/* Setup to get the FD from Mir, blocking */
+static int
+get_mir_session_fd (MirPromptSession * session)
+{
+	int retfd = 0;
+	MirWaitHandle * wait = mir_prompt_session_new_fds_for_prompt_providers(session,
+		1,
+		get_mir_session_fd_helper,
+		&retfd);
+
+	mir_wait_for(wait);
+
+	return retfd;
+}
+
+static GList * open_proxies = NULL;
+
+static gint
+remove_socket_path_find (gconstpointer a, gconstpointer b) 
+{
+	GObject * obj = (GObject *)a;
+	const gchar * path = (const gchar *)b;
+
+	gchar * objpath = g_object_get_qdata(obj, proxy_path_quark());
+	
+	return g_strcmp0(objpath, path);
+}
+
+/* Cleans up if we need to early */
+static gboolean
+remove_socket_path (const gchar * path)
+{
+	GList * thisproxy = g_list_find_custom(open_proxies, path, remove_socket_path_find);
+	if (thisproxy == NULL)
+		return FALSE;
+
+	g_debug("Removing Mir Socket Proxy: %s", path);
+
+	GObject * obj = G_OBJECT(thisproxy->data);
+	open_proxies = g_list_delete_link(open_proxies, thisproxy);
+
+	/* Remove ourselves from DBus if we weren't already */
+	g_dbus_interface_skeleton_unexport(G_DBUS_INTERFACE_SKELETON(obj));
+
+	/* If we still have FD, close it */
+	int mirfd = GPOINTER_TO_INT(g_object_get_qdata(obj, mir_fd_quark()));
+	if (mirfd != 0) {
+		close(mirfd);
+
+		/* This is actually an error, we should expect not to find
+		   this here to do anything with it. */
+		const gchar * props[3] = {
+			"UbuntuAppLaunchProxyDbusPath",
+			NULL,
+			NULL
+		};
+		props[1] = path;
+		report_recoverable_problem("ubuntu-app-launch-mir-fd-proxy", 0, TRUE, props);
+	}
+
+	g_object_unref(obj);
+
+	return TRUE;
+}
+
+/* Small timeout function that shouldn't, in most cases, ever do anything.
+   But we need it here to ensure we don't leave things on the bus */
+static gboolean
+proxy_timeout (gpointer user_data)
+{
+	const gchar * path = (const gchar *)user_data;
+	remove_socket_path(path);
+	return G_SOURCE_REMOVE;
+}
+
+/* Removes the whole list of proxies if they are there */
+static void
+proxy_cleanup_list (void)
+{
+	while (open_proxies) {
+		GObject * obj = G_OBJECT(open_proxies->data);
+		gchar * path = g_object_get_qdata(obj, proxy_path_quark());
+		remove_socket_path(path);
+	}
+}
+
+static gboolean
+proxy_mir_socket (GObject * obj, GDBusMethodInvocation * invocation, gpointer user_data)
+{
+	g_debug("Called to give Mir socket");
+	int fd = GPOINTER_TO_INT(user_data);
+
+	if (fd == 0) {
+		g_critical("No FDs to give!");
+		return FALSE;
+	}
+
+	/* Index into fds */
+	GVariant* handle = g_variant_new_handle(0);
+	GVariant* tuple = g_variant_new_tuple(&handle, 1);
+
+	GError* error = NULL;
+	GUnixFDList* list = g_unix_fd_list_new();
+	g_unix_fd_list_append(list, fd, &error);
+
+	if (error == NULL) {   
+		g_dbus_method_invocation_return_value_with_unix_fd_list(invocation, tuple, list);
+	} else {
+		g_variant_ref_sink(tuple);
+		g_variant_unref(tuple);
+	}
+
+	g_object_unref(list);
+
+	if (error != NULL) {   
+		g_critical("Unable to pass FD %d: %s", fd, error->message);
+		g_error_free(error);
+		return FALSE;
+	}   
+
+	g_object_set_qdata(obj, mir_fd_quark(), GINT_TO_POINTER(0));
+
+	return TRUE;
+}
+
+/* Sets up the DBus proxy to send to the demangler */
+static gchar *
+build_proxy_socket_path (const gchar * appid, int mirfd)
+{
+	static gboolean final_cleanup = FALSE;
+	if (!final_cleanup) {
+		g_atexit(proxy_cleanup_list);
+		final_cleanup = TRUE;
+	}
+
+	GError * error = NULL;
+	GDBusConnection * session = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, &error);
+	if (error != NULL) {
+		g_warning("Unable to get session bus: %s", error->message);
+		g_error_free(error);
+		return NULL;
+	}
+
+	/* Export an Object on DBus */
+	proxySocketDemangler * skel = proxy_socket_demangler_skeleton_new();
+	g_signal_connect(G_OBJECT(skel), "handle-get-mir-socket", G_CALLBACK(proxy_mir_socket), GINT_TO_POINTER(mirfd));
+
+	gchar * encoded_appid = escape_dbus_string(appid);
+	gchar * socket_name = NULL;
+	/* Loop until we fine an object path that isn't taken (probably only once) */
+	while (socket_name == NULL) {
+		gchar* tryname = g_strdup_printf("/com/canonical/UbuntuAppLaunch/%s/%X", encoded_appid, g_random_int());
+		g_dbus_interface_skeleton_export(G_DBUS_INTERFACE_SKELETON(skel),
+			session,
+			tryname,
+			&error);
+
+		if (error == NULL) {
+			socket_name = tryname;
+			g_debug("Exporting Mir socket on path: %s", socket_name);
+		} else {
+			/* Always print the error, but if the object path is in use let's
+			   not exit the loop. Let's just try again. */
+			bool exitnow = (error->domain != G_DBUS_ERROR || error->code != G_DBUS_ERROR_OBJECT_PATH_IN_USE);
+			g_critical("Unable to export trusted session object: %s", error->message);
+
+			g_clear_error(&error);
+			g_free(tryname);
+
+			if (exitnow) {
+				break;
+			}
+		}
+	}
+	g_free(encoded_appid);
+
+	/* If we didn't get a socket name, we should just exit. And
+	   make sure to clean up the socket. */
+	if (socket_name == NULL) {   
+		g_object_unref(skel);
+		g_object_unref(session);
+		g_critical("Unable to export object to any name");
+		return NULL;
+	}
+
+	g_object_set_qdata_full(G_OBJECT(skel), proxy_path_quark(), g_strdup(socket_name), g_free);
+	g_object_set_qdata(G_OBJECT(skel), mir_fd_quark(), GINT_TO_POINTER(mirfd));
+	open_proxies = g_list_prepend(open_proxies, skel);
+
+	g_timeout_add_seconds_full(G_PRIORITY_DEFAULT,
+	                           2,
+	                           proxy_timeout,
+	                           g_strdup(socket_name),
+	                           g_free);
+
+	g_object_unref(session);
+
+	return socket_name;
+}
+
+gchar *
+ubuntu_app_launch_start_session_helper (const gchar * type, MirPromptSession * session, const gchar * appid, const gchar * const * uris)
+{
+	g_return_val_if_fail(type != NULL, NULL);
+	g_return_val_if_fail(session != NULL, NULL);
+	g_return_val_if_fail(appid != NULL, NULL);
+	g_return_val_if_fail(g_strstr_len(type, -1, ":") == NULL, NULL);
+
+	int mirfd = get_mir_session_fd(session);
+	if (mirfd == 0)
+		return NULL;
+
+	gchar * socket_path = build_proxy_socket_path(appid, mirfd);
+	if (socket_path == NULL) {
+		close(mirfd);
+		return NULL;
+	}
+
+	gchar * instanceid = g_strdup_printf("%" G_GUINT64_FORMAT, g_get_real_time());
+
+	if (start_helper_core(type, appid, uris, instanceid, socket_path)) {
+		return instanceid;
+	}
+
+	remove_socket_path(socket_path);
+	g_free(socket_path);
+	close(mirfd);
 	g_free(instanceid);
 	return NULL;
 }
@@ -2201,5 +2359,106 @@ ubuntu_app_launch_observer_delete_helper_stop (UbuntuAppLaunchHelperObserver obs
 	g_return_val_if_fail(g_strstr_len(helper_type, -1, ":") == NULL, FALSE);
 
 	return delete_helper_generic(observer, helper_type, user_data, &helper_stopped_obs);
+}
+
+/* Sets an environment variable in Upstart */
+static void
+set_var (GDBusConnection * bus, const gchar * job_name, const gchar * instance_name, const gchar * envvar)
+{
+	GVariantBuilder builder; /* Target: (assb) */
+	g_variant_builder_init(&builder, G_VARIANT_TYPE_TUPLE);
+
+	/* Setup the job properties */
+	g_variant_builder_open(&builder, G_VARIANT_TYPE_ARRAY);
+	g_variant_builder_add_value(&builder, g_variant_new_string(job_name));
+	if (instance_name != NULL)
+		g_variant_builder_add_value(&builder, g_variant_new_string(instance_name));
+	g_variant_builder_close(&builder);
+
+	g_variant_builder_add_value(&builder, g_variant_new_string(envvar));
+
+	/* Do we want to replace?  Yes, we do! */
+	g_variant_builder_add_value(&builder, g_variant_new_boolean(TRUE));
+
+	g_dbus_connection_call(bus,
+		"com.ubuntu.Upstart",
+		"/com/ubuntu/Upstart",
+		"com.ubuntu.Upstart0_6",
+		"SetEnv",
+		g_variant_builder_end(&builder),
+		NULL, /* reply */
+		G_DBUS_CALL_FLAGS_NONE,
+		-1, /* timeout */
+		NULL, /* cancelable */
+		NULL, NULL); /* callback */
+}
+
+gboolean
+ubuntu_app_launch_helper_set_exec (const gchar * execline, const gchar * directory)
+{
+	g_return_val_if_fail(execline != NULL, FALSE);
+	g_return_val_if_fail(execline[0] != '\0', FALSE);
+
+	/* Check to see if we can get the job environment */
+	const gchar * job_name = g_getenv("UPSTART_JOB");
+	const gchar * instance_name = g_getenv("UPSTART_INSTANCE");
+	const gchar * demangler = g_getenv("UBUNTU_APP_LAUNCH_DEMANGLE_NAME");
+	g_return_if_fail(job_name != NULL);
+
+	GError * error = NULL;
+	GDBusConnection * bus = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, &error);
+
+	if (error != NULL) {
+		g_warning("Unable to get session bus: %s", error->message);
+		g_error_free(error);
+		return FALSE;
+	}
+
+	/* The exec value */
+	gchar * envstr = NULL;
+	if (demangler) {
+		envstr = g_strdup_printf("APP_EXEC=%s %s", DEMANGLER_PATH, execline);
+	} else {
+		envstr = g_strdup_printf("APP_EXEC=%s", execline);
+	}
+
+	set_var(bus, job_name, instance_name, envstr);
+	g_free(envstr);
+
+	/* The directory value */
+	if (directory != NULL) {
+		gchar * direnv = g_strdup_printf("APP_DIR=%s", directory);
+		set_var(bus, job_name, instance_name, direnv);
+		g_free(direnv);
+	}
+
+	g_object_unref(bus);
+
+	return TRUE;
+}
+
+
+/* ensure that all characters are valid in the dbus output string */
+static gchar *
+escape_dbus_string (const gchar * input)
+{
+	static const gchar *xdigits = "0123456789abcdef";
+	GString *escaped;
+	gchar c;
+
+	g_return_val_if_fail (input != NULL, NULL);
+
+	escaped = g_string_new (NULL);
+	while ((c = *input++)) {
+		if (g_ascii_isalnum (c)) {
+			g_string_append_c (escaped, c);
+		} else {
+			g_string_append_c (escaped, '_');
+			g_string_append_c (escaped, xdigits[c >> 4]);
+			g_string_append_c (escaped, xdigits[c & 0xf]);
+		}
+	}
+
+	return g_string_free (escaped, FALSE);
 }
 
