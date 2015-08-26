@@ -19,6 +19,7 @@
 
 #include <json-glib/json-glib.h>
 #include <click.h>
+#include <libertine.h>
 
 #include "ubuntu-app-launch.h"
 #include "app-info.h"
@@ -258,19 +259,52 @@ app_info_libertine (const gchar * appid, gchar ** appdir, gchar ** appdesktop)
 		return FALSE;
 	}
 
+	gchar ** containerlist = libertine_list_containers();
+
+	if (true) {
+		gchar * containerstr = g_strjoinv(", ", containerlist);
+		g_debug("Libertine Containers: %s", containerstr);
+		g_free(containerstr);
+	}
+
+	gchar * containeriter = NULL;
+	if (containerlist != NULL && containerlist[0] != NULL) {
+		for (containeriter = containerlist; containeriter != NULL; containeriter++) {
+			if (g_strcmp0(containeriter, container) == 0) {
+				break;
+			}
+		}
+	}
+
+	g_strfreev(containerlist);
+
+	if (containeriter == NULL) {
+		g_warning("Container '%s' is not in the libertine container list", container);
+		return FALSE;
+	}
+
 	gchar * desktopname = g_strdup_printf("%s.desktop", app);
 
-	gchar * desktopdir = g_build_filename(g_get_user_cache_dir(), "libertine-container", container, "rootfs", "usr", "share", NULL);
+	gchar * libertinedir = libertine_container_path(container);
+	gchar * desktopdir = g_build_filename(libertinedir, "usr", "share", NULL);
+	g_free(libertinedir);
+
 	gchar * desktopfile = g_build_filename(desktopdir, "applications", desktopname, NULL);
 
 	if (!g_file_test(desktopfile, G_FILE_TEST_EXISTS)) {
+		g_debug("Unable to find desktop file '%s' in container '%s' (checking userdir)", desktopfile, container);
+
 		g_free(desktopdir);
 		g_free(desktopfile);
 
-		desktopdir = g_build_filename(g_get_user_data_dir(), "libertine-container", "user-data", container, ".local", "share", NULL);
+		libertinedir = libertine_container_home_path(container);
+		desktopdir = g_build_filename(libertinedir, ".local", "share", NULL);
+		g_free(libertinedir);
 		desktopfile = g_build_filename(desktopdir, "applications", desktopname, NULL);
 
 		if (!g_file_test(desktopfile, G_FILE_TEST_EXISTS)) {
+			g_debug("Unable to find desktop file '%s' in container '%s' (now failing)", desktopfile, container);
+
 			g_free(desktopdir);
 			g_free(desktopfile);
 
