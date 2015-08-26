@@ -267,10 +267,12 @@ app_info_libertine (const gchar * appid, gchar ** appdir, gchar ** appdesktop)
 		g_free(containerstr);
 	}
 
-	gchar * containeriter = NULL;
+	gboolean validcontainer = FALSE;
 	if (containerlist != NULL && containerlist[0] != NULL) {
-		for (containeriter = containerlist; containeriter != NULL; containeriter++) {
-			if (g_strcmp0(containeriter, container) == 0) {
+		gchar ** containeriter = NULL;
+		for (containeriter = containerlist; *containeriter != NULL; containeriter++) {
+			if (g_strcmp0(*containeriter, container) == 0) {
+				validcontainer = TRUE;
 				break;
 			}
 		}
@@ -278,7 +280,7 @@ app_info_libertine (const gchar * appid, gchar ** appdir, gchar ** appdesktop)
 
 	g_strfreev(containerlist);
 
-	if (containeriter == NULL) {
+	if (!validcontainer) {
 		g_warning("Container '%s' is not in the libertine container list", container);
 		return FALSE;
 	}
