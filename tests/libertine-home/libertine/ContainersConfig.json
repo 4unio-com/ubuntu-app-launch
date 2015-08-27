@@ -1,0 +1,23 @@
+{
+    "containerList": [
+        {
+            "id": "another-container",
+            "image": "wily",
+            "installStatus": "new",
+            "installedApps": [
+            ],
+            "name": "Ubuntu 'Wily Werewolf'",
+            "type": "lxc"
+        },
+        {
+            "id": "container-name",
+            "image": "wily",
+            "installStatus": "new",
+            "installedApps": [
+            ],
+            "name": "Ubuntu 'Wily Werewolf'",
+            "type": "lxc"
+        }
+    ],
+    "defaultContainer": "container-name"
+}
