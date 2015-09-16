@@ -1,7 +1,15 @@
-ubuntu-app-launch (0.5+15.10.20150817-0ubuntu1) wily; urgency=medium
+ubuntu-app-launch (0.5+15.04.20150827-0ubuntu1) vivid; urgency=medium
 
   [ CI Train Bot ]
   * debian/libubuntu-app-launch2.symbols: update to released version.
+  * New rebuild forced.
+
+  [ Ted Gould ]
+  * Remove libertine custom code with calls to liblibertine
+
+ -- CI Train Bot <ci-train-bot@canonical.com>  Thu, 27 Aug 2015 13:46:55 +0000
+
+ubuntu-app-launch (0.5+15.04.20150801-0ubuntu1) vivid; urgency=medium
 
   [ Robert Ancell ]
   * Depend on upstart instead of upstart-bin which is a dummy
@@ -13,34 +21,19 @@ ubuntu-app-launch (0.5+15.10.20150817-0ubuntu1) wily; urgency=medium
     variables
   * Provide an API to find the desktop file and directory of an AppID
   * Start XMir for applications that enable it
-
- -- CI Train Bot <ci-train-bot@canonical.com>  Mon, 17 Aug 2015 21:38:33 +0000
-
-ubuntu-app-launch (0.5+15.10.20150629-0ubuntu1) wily; urgency=medium
-
-  [ Andreas Pokorny ]
-  * mir release 0.14.0
-
- -- CI Train Bot <ci-train-bot@canonical.com>  Mon, 29 Jun 2015 06:10:46 +0000
-
-ubuntu-app-launch (0.5+15.10.20150605-0ubuntu1) wily; urgency=medium
-
-  [ Ted Gould ]
   * Don't error on ZG failure (LP: #1452178)
   * Fallback to looking for the AppID tag if the source is missing (LP:
     #1461138)
-
- -- CI Train Bot <ci-train-bot@canonical.com>  Fri, 05 Jun 2015 19:49:48 +0000
-
-ubuntu-app-launch (0.5+15.10.20150604-0ubuntu1) wily; urgency=medium
-
-  [ Ted Gould ]
   * Add an untrusted helper that works with Mir trusted prompt sessions.
 
-  [ CI Train Bot ]
-  * debian/libubuntu-app-launch2.symbols: update to released version.
+ -- Ted Gould <ted@ubuntu.com>  Mon, 17 Aug 2015 21:38:33 +0000
 
- -- CI Train Bot <ci-train-bot@canonical.com>  Thu, 04 Jun 2015 20:35:57 +0000
+ubuntu-app-launch (0.4+15.04.20150603-0ubuntu1) vivid; urgency=medium
+
+  [ Ted Gould ]
+  * Fallback to looking for the AppID tag if the source is missing
+
+ -- CI Train Bot <ci-train-bot@canonical.com>  Wed, 03 Jun 2015 21:20:42 +0000
 
 ubuntu-app-launch (0.4+15.04.20150410-0ubuntu1) vivid; urgency=medium
 

@@ -25,6 +25,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <zeitgeist.h>
+#include <libertine.h>
 
 #include "ubuntu-app-launch-trace.h"
 #include "second-exec-core.h"
@@ -1630,8 +1631,8 @@ ubuntu_app_launch_triplet_to_app_id (const gchar * pkg, const gchar * app, const
 	g_return_val_if_fail(pkg != NULL, NULL);
 
 	/* Check if is a libertine container */
-	gchar * libertinepath = g_build_filename(g_get_user_cache_dir(), "libertine-container", pkg, NULL);
-	gboolean libcontainer = g_file_test(libertinepath, G_FILE_TEST_EXISTS);
+	gchar * libertinepath = libertine_container_path(pkg);
+	gboolean libcontainer = libertinepath != NULL;
 	g_free(libertinepath);
 
 	if (libcontainer) {
