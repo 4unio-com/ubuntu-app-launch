@@ -23,6 +23,7 @@ void
 starting (const gchar * appid, gpointer user_data)
 {
 	g_print("Starting %s\n", appid);
+	ubuntu_app_launch_observer_finish_app_starting(appid, TRUE);
 	return;
 }
 

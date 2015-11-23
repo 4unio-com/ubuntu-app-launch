@@ -163,13 +163,28 @@ gboolean   ubuntu_app_launch_application_info         (const gchar *            
  * @user_data: (closure) (allow-none): Data to pass to the observer
  *
  * Sets up a callback to get called each time an application
- * is about to start.  The application will not start until the
- * function returns.
+ * is about to start.  The application will not start until
+ * ubuntu_app_launch_observer_finish_app_starting is called after
+ * the callback is called.
  *
  * Return value: Whether adding the observer was successful.
  */
 gboolean   ubuntu_app_launch_observer_add_app_starting (UbuntuAppLaunchAppObserver       observer,
                                                          gpointer                          user_data);
+/**
+ * ubuntu_app_launch_observer_finish_app_starting:
+ * @appid: ID of the application being started
+ * @approved: Whether the app can continue starting
+ *
+ * Finishes handling an app that is starting up via the callback
+ * registered with ubuntu_app_launch_observer_add_app_starting.
+ * If the app is allowed to continue starting, pass TRUE.
+ *
+ * This should only be called once for the entire bus.
+ *
+ * Return value: Whether finish app startup was successful.
+ */
+gboolean   ubuntu_app_launch_observer_finish_app_starting (const gchar *appid, gboolean approved);
 /**
  * ubuntu_app_launch_observer_add_app_started:
  * @observer: (scope notified): Callback when an application started

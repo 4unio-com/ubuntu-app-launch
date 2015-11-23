@@ -1007,32 +1007,14 @@ ubuntu_app_launch_observer_add_app_resume (UbuntuAppLaunchAppObserver observer, 
 	return add_session_generic(observer, user_data, "UnityResumeRequest", &resume_array, resume_signal_cb);
 }
 
-/* Handle the starting signal when it occurs, call the observer, then send a signal back when we're done */
+/* Handle the starting signal when it occurs and call the observer,
+   which will send a signal back when it's done via finish_app_starting */
 static void
 starting_signal_cb (GDBusConnection * conn, const gchar * sender, const gchar * object, const gchar * interface, const gchar * signal, GVariant * params, gpointer user_data)
 {
 	ual_tracepoint(observer_start, "starting");
 
 	generic_signal_cb(conn, sender, object, interface, signal, params, user_data);
-
-	if (g_variant_check_format_string(params, "(s)", FALSE)) {
-		const gchar *appid = NULL;
-		g_variant_get(params, "(&s)", &appid);
-
-		GError * error = NULL;
-		g_dbus_connection_emit_signal(conn,
-			sender, /* destination */
-			"/", /* path */
-			"com.canonical.UbuntuAppLaunch", /* interface */
-			"UnityStartingSignal", /* signal */
-			g_variant_new("(sb)", appid, TRUE), /* params */
-			&error);
-
-		if (error != NULL) {
-			g_warning("Unable to emit response signal: %s", error->message);
-			g_error_free(error);
-		}
-	}
 
 	ual_tracepoint(observer_finish, "starting");
 }
@@ -1041,6 +1023,34 @@ gboolean
 ubuntu_app_launch_observer_add_app_starting (UbuntuAppLaunchAppObserver observer, gpointer user_data)
 {
 	return add_session_generic(observer, user_data, "UnityStartingBroadcast", &starting_array, starting_signal_cb);
+}
+
+gboolean
+ubuntu_app_launch_observer_finish_app_starting (const gchar *appid, gboolean approved)
+{
+	GDBusConnection * conn = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
+
+	if (conn == NULL) {
+		return FALSE;
+	}
+
+	GError * error = NULL;
+	g_dbus_connection_emit_signal(conn,
+		NULL, /* destination */
+		"/", /* path */
+		"com.canonical.UbuntuAppLaunch", /* interface */
+		"UnityStartingSignal", /* signal */
+		g_variant_new("(sb)", appid, approved), /* params */
+		&error);
+	g_object_unref(conn);
+
+	if (error != NULL) {
+		g_warning("Unable to emit response signal: %s", error->message);
+		g_error_free(error);
+		return FALSE;
+	}
+
+	return TRUE;
 }
 
 /* Handle the failed signal when it occurs, call the observer */

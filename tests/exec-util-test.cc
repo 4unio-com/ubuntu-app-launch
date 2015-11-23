@@ -34,7 +34,8 @@ class ExecUtil : public ::testing::Test
 
 	protected:
 		static void starting_cb (const gchar * appid, gpointer user_data) {
-			g_debug("I'm too sexy to callback");
+			g_debug("Starting app %s", appid);
+			ASSERT_TRUE(ubuntu_app_launch_observer_finish_app_starting(appid, TRUE));
 		}
 
 		virtual void SetUp() {

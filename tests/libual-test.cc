@@ -48,6 +48,7 @@ class LibUAL : public ::testing::Test
 			g_debug("Starting Callback: %s", appid);
 			LibUAL * _this = static_cast<LibUAL *>(user_data);
 			_this->last_starting_appid = appid;
+			ASSERT_TRUE(ubuntu_app_launch_observer_finish_app_starting(appid, TRUE));
 		}
 
 		static void focus_cb (const gchar * appid, gpointer user_data) {

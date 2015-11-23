@@ -1,3 +1,11 @@
+ubuntu-app-launch (0.6) xenial; urgency=medium
+
+  * Bump version because the expectations for callers of
+    ubuntu_app_launch_observer_add_app_starting has changed (to expect
+    a further call to ubuntu_app_launch_observer_finish_app_starting)
+
+ -- Michael Terry <mterry@ubuntu.com>  Mon, 23 Nov 2015 16:25:15 -0500
+
 ubuntu-app-launch (0.5+15.10.20150817-0ubuntu1) wily; urgency=medium
 
   [ CI Train Bot ]
