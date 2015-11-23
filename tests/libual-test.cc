@@ -38,11 +38,18 @@ class LibUAL : public ::testing::Test
 		DbusTestDbusMock * mock = NULL;
 		DbusTestDbusMock * cgmock = NULL;
 		GDBusConnection * bus = NULL;
+		std::string last_starting_appid;
 		std::string last_focus_appid;
 		std::string last_resume_appid;
 		guint resume_timeout = 0;
 
 	private:
+		static void starting_cb (const gchar * appid, gpointer user_data) {
+			g_debug("Starting Callback: %s", appid);
+			LibUAL * _this = static_cast<LibUAL *>(user_data);
+			_this->last_starting_appid = appid;
+		}
+
 		static void focus_cb (const gchar * appid, gpointer user_data) {
 			g_debug("Focus Callback: %s", appid);
 			LibUAL * _this = static_cast<LibUAL *>(user_data);
@@ -258,11 +265,13 @@ class LibUAL : public ::testing::Test
 			/* Make sure we pretend the CG manager is just on our bus */
 			g_setenv("UBUNTU_APP_LAUNCH_CG_MANAGER_SESSION_BUS", "YES", TRUE);
 
+			ASSERT_TRUE(ubuntu_app_launch_observer_add_app_starting(starting_cb, this));
 			ASSERT_TRUE(ubuntu_app_launch_observer_add_app_focus(focus_cb, this));
 			ASSERT_TRUE(ubuntu_app_launch_observer_add_app_resume(resume_cb, this));
 		}
 
 		virtual void TearDown() {
+			ubuntu_app_launch_observer_delete_app_starting(starting_cb, this);
 			ubuntu_app_launch_observer_delete_app_focus(focus_cb, this);
 			ubuntu_app_launch_observer_delete_app_resume(resume_cb, this);
 
@@ -748,15 +757,12 @@ starting_observer (const gchar * appid, gpointer user_data)
 
 TEST_F(LibUAL, StartingResponses)
 {
-	std::string last_observer;
 	unsigned int starting_count = 0;
 	GDBusConnection * session = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
 	guint filter = g_dbus_connection_add_filter(session,
 		filter_starting,
 		&starting_count,
 		NULL);
-
-	EXPECT_TRUE(ubuntu_app_launch_observer_add_app_starting(starting_observer, &last_observer));
 
 	g_dbus_connection_emit_signal(session,
 		NULL, /* destination */
@@ -768,10 +774,8 @@ TEST_F(LibUAL, StartingResponses)
 
 	pause(100);
 
-	EXPECT_EQ("com.test.good_application_1.2.3", last_observer);
+	EXPECT_EQ("com.test.good_application_1.2.3", this->last_starting_appid);
 	EXPECT_EQ(1, starting_count);
-
-	EXPECT_TRUE(ubuntu_app_launch_observer_delete_app_starting(starting_observer, &last_observer));
 
 	g_dbus_connection_remove_filter(session, filter);
 	g_object_unref(session);
@@ -781,6 +785,7 @@ TEST_F(LibUAL, AppIdTest)
 {
 	ASSERT_TRUE(ubuntu_app_launch_start_application("com.test.good_application_1.2.3", NULL));
 	pause(50); /* Ensure all the events come through */
+	EXPECT_EQ("com.test.good_application_1.2.3", this->last_starting_appid);
 	EXPECT_EQ("com.test.good_application_1.2.3", this->last_focus_appid);
 	EXPECT_EQ("com.test.good_application_1.2.3", this->last_resume_appid);
 }
@@ -817,6 +822,7 @@ TEST_F(LibUAL, UrlSendTest)
 	ASSERT_TRUE(ubuntu_app_launch_start_application("com.test.good_application_1.2.3", uris));
 	pause(100); /* Ensure all the events come through */
 
+	EXPECT_EQ("com.test.good_application_1.2.3", this->last_starting_appid);
 	EXPECT_EQ("com.test.good_application_1.2.3", this->last_focus_appid);
 	EXPECT_EQ("com.test.good_application_1.2.3", this->last_resume_appid);
 
@@ -851,6 +857,7 @@ TEST_F(LibUAL, UrlSendNoObjectTest)
 	ASSERT_TRUE(ubuntu_app_launch_start_application("com.test.good_application_1.2.3", uris));
 	pause(100); /* Ensure all the events come through */
 
+	EXPECT_EQ("com.test.good_application_1.2.3", this->last_starting_appid);
 	EXPECT_EQ("com.test.good_application_1.2.3", this->last_focus_appid);
 	EXPECT_EQ("com.test.good_application_1.2.3", this->last_resume_appid);
 }
@@ -861,6 +868,7 @@ TEST_F(LibUAL, UnityTimeoutTest)
 
 	ASSERT_TRUE(ubuntu_app_launch_start_application("com.test.good_application_1.2.3", NULL));
 	pause(1000); /* Ensure all the events come through */
+	EXPECT_EQ("com.test.good_application_1.2.3", this->last_starting_appid);
 	EXPECT_EQ("com.test.good_application_1.2.3", this->last_focus_appid);
 	EXPECT_EQ("com.test.good_application_1.2.3", this->last_resume_appid);
 }
@@ -876,6 +884,7 @@ TEST_F(LibUAL, UnityTimeoutUriTest)
 
 	ASSERT_TRUE(ubuntu_app_launch_start_application("com.test.good_application_1.2.3", uris));
 	pause(1000); /* Ensure all the events come through */
+	EXPECT_EQ("com.test.good_application_1.2.3", this->last_starting_appid);
 	EXPECT_EQ("com.test.good_application_1.2.3", this->last_focus_appid);
 	EXPECT_EQ("com.test.good_application_1.2.3", this->last_resume_appid);
 }
@@ -915,6 +924,7 @@ TEST_F(LibUAL, UnityLostTest)
 
 	pause(1000); /* Ensure all the events come through */
 
+	EXPECT_EQ("com.test.good_application_1.2.3", this->last_starting_appid);
 	EXPECT_EQ("com.test.good_application_1.2.3", this->last_focus_appid);
 	EXPECT_EQ("com.test.good_application_1.2.3", this->last_resume_appid);
 

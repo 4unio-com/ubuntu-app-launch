@@ -473,19 +473,25 @@ set_confined_envvars (EnvHandle * handle, const gchar * package, const gchar * a
 	return;
 }
 
-static void
-unity_signal_cb (GDBusConnection * con, const gchar * sender, const gchar * path, const gchar * interface, const gchar * signal, GVariant * params, gpointer user_data)
-{
-	GMainLoop * mainloop = (GMainLoop *)user_data;
-	g_main_loop_quit(mainloop);
-}
-
 struct _handshake_t {
 	GDBusConnection * con;
 	GMainLoop * mainloop;
 	guint signal_subscribe;
 	guint timeout;
+	gboolean approved;
 };
+
+static void
+unity_signal_cb (GDBusConnection * con, const gchar * sender, const gchar * path, const gchar * interface, const gchar * signal, GVariant * params, gpointer user_data)
+{
+	handshake_t * handshake = (handshake_t *)user_data;
+
+	if (g_variant_check_format_string(params, "(sb)", FALSE)) {
+		g_variant_get(params, "(sb)", NULL, &handshake->approved);
+	}
+
+	g_main_loop_quit(handshake->mainloop);
+}
 
 static gboolean
 unity_too_slow_cb (gpointer user_data)
@@ -520,7 +526,7 @@ starting_handshake_start (const gchar *   app_id)
 		"/", /* path */
 		app_id, /* arg0 */
 		G_DBUS_SIGNAL_FLAGS_NONE,
-		unity_signal_cb, handshake->mainloop,
+		unity_signal_cb, handshake,
 		NULL); /* user data destroy */
 
 	/* Send unfreeze to to Unity */
@@ -538,14 +544,15 @@ starting_handshake_start (const gchar *   app_id)
 	return handshake;
 }
 
-void
+gboolean
 starting_handshake_wait (handshake_t * handshake)
 {
 	if (handshake == NULL)
-		return;
+		return FALSE;
 
 	g_main_loop_run(handshake->mainloop);
 
+	gboolean approved = handshake->approved;
 	if (handshake->timeout != 0)
 		g_source_remove(handshake->timeout);
 	g_main_loop_unref(handshake->mainloop);
@@ -553,6 +560,8 @@ starting_handshake_wait (handshake_t * handshake)
 	g_object_unref(handshake->con);
 
 	g_free(handshake);
+
+	return approved;
 }
 
 EnvHandle *

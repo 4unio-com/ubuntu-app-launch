@@ -88,10 +88,62 @@ TEST_F(HelperHandshakeTest, BaseHandshake)
 		"/", /* path */
 		"com.canonical.UbuntuAppLaunch", /* interface */
 		"UnityStartingSignal", /* signal */
-		g_variant_new("(s)", "fooapp"), /* params, the same */
+		g_variant_new("(sb)", "fooapp", TRUE), /* params */
 		NULL);
 
-	starting_handshake_wait(handshake);
+	ASSERT_TRUE(starting_handshake_wait(handshake));
+
+	g_object_unref(con);
+
+	return;
+}
+
+TEST_F(HelperHandshakeTest, UnapprovedHandshake)
+{
+	GDBusConnection * con = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
+	guint filter = g_dbus_connection_add_filter(con, filter_func, this, NULL);
+
+	handshake_t * handshake = starting_handshake_start("fooapp");
+
+	g_main_loop_run(mainloop);
+
+	g_dbus_connection_remove_filter(con, filter);
+
+	g_dbus_connection_emit_signal(con,
+		g_dbus_connection_get_unique_name(con), /* destination */
+		"/", /* path */
+		"com.canonical.UbuntuAppLaunch", /* interface */
+		"UnityStartingSignal", /* signal */
+		g_variant_new("(sb)", "fooapp", FALSE), /* params */
+		NULL);
+
+	ASSERT_FALSE(starting_handshake_wait(handshake));
+
+	g_object_unref(con);
+
+	return;
+}
+
+TEST_F(HelperHandshakeTest, InvalidHandshake)
+{
+	GDBusConnection * con = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
+	guint filter = g_dbus_connection_add_filter(con, filter_func, this, NULL);
+
+	handshake_t * handshake = starting_handshake_start("fooapp");
+
+	g_main_loop_run(mainloop);
+
+	g_dbus_connection_remove_filter(con, filter);
+
+	g_dbus_connection_emit_signal(con,
+		g_dbus_connection_get_unique_name(con), /* destination */
+		"/", /* path */
+		"com.canonical.UbuntuAppLaunch", /* interface */
+		"UnityStartingSignal", /* signal */
+		g_variant_new("(ss)", "fooapp", "true"), /* bad params */
+		NULL);
+
+	ASSERT_FALSE(starting_handshake_wait(handshake));
 
 	g_object_unref(con);
 
@@ -112,7 +164,7 @@ TEST_F(HelperHandshakeTest, HandshakeTimeout)
 
 	guint outertimeout = g_timeout_add_seconds(2, two_second_reached, &timeout_reached);
 
-	starting_handshake_wait(handshake);
+	ASSERT_FALSE(starting_handshake_wait(handshake));
 
 	ASSERT_FALSE(timeout_reached);
 

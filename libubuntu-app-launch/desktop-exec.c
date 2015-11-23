@@ -210,9 +210,9 @@ desktop_task_setup (GDBusConnection * bus, const gchar * app_id, EnvHandle * han
 
 	ual_tracepoint(handshake_wait, app_id);
 
-	starting_handshake_wait(handshake);
+	gboolean approved = starting_handshake_wait(handshake);
 
 	ual_tracepoint(handshake_complete, app_id);
 
-	return TRUE;
+	return approved;
 }

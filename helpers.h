@@ -46,7 +46,7 @@ void        env_handle_finish    (EnvHandle *     handle);
 
 typedef struct _handshake_t handshake_t;
 handshake_t * starting_handshake_start   (const gchar *   app_id);
-void      starting_handshake_wait        (handshake_t *   handshake);
+gboolean      starting_handshake_wait    (handshake_t *   handshake);
 
 GDBusConnection * cgroup_manager_connection (void);
 void              cgroup_manager_unref (GDBusConnection * cgroup_manager);

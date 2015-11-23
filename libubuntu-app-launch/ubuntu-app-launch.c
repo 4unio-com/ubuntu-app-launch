@@ -953,7 +953,7 @@ generic_signal_cb (GDBusConnection * conn, const gchar * sender, const gchar * o
 	observer_t * observer = (observer_t *)user_data;
 	const gchar * appid = NULL;
 
-	if (observer->func != NULL) {
+	if (observer->func != NULL && g_variant_check_format_string(params, "(s)", FALSE)) {
 		g_variant_get(params, "(&s)", &appid);
 		observer->func(appid, observer->user_data);
 	}
@@ -1015,18 +1015,23 @@ starting_signal_cb (GDBusConnection * conn, const gchar * sender, const gchar * 
 
 	generic_signal_cb(conn, sender, object, interface, signal, params, user_data);
 
-	GError * error = NULL;
-	g_dbus_connection_emit_signal(conn,
-		sender, /* destination */
-		"/", /* path */
-		"com.canonical.UbuntuAppLaunch", /* interface */
-		"UnityStartingSignal", /* signal */
-		params, /* params, the same */
-		&error);
+	if (g_variant_check_format_string(params, "(s)", FALSE)) {
+		const gchar *appid = NULL;
+		g_variant_get(params, "(&s)", &appid);
 
-	if (error != NULL) {
-		g_warning("Unable to emit response signal: %s", error->message);
-		g_error_free(error);
+		GError * error = NULL;
+		g_dbus_connection_emit_signal(conn,
+			sender, /* destination */
+			"/", /* path */
+			"com.canonical.UbuntuAppLaunch", /* interface */
+			"UnityStartingSignal", /* signal */
+			g_variant_new("(sb)", appid, TRUE), /* params */
+			&error);
+
+		if (error != NULL) {
+			g_warning("Unable to emit response signal: %s", error->message);
+			g_error_free(error);
+		}
 	}
 
 	ual_tracepoint(observer_finish, "starting");
