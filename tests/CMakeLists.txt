@@ -24,7 +24,7 @@ add_test (helper-test helper-test)
 # Helper test
 
 add_executable (helper-handshake-test helper-handshake-test.cc)
-target_link_libraries (helper-handshake-test helpers gtest ${GTEST_LIBS})
+target_link_libraries (helper-handshake-test helpers-test gtest ${GTEST_LIBS})
 
 add_test (helper-handshake-test helper-handshake-test)
 

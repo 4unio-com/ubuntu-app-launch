@@ -88,6 +88,14 @@ TEST_F(HelperHandshakeTest, BaseHandshake)
 		"/", /* path */
 		"com.canonical.UbuntuAppLaunch", /* interface */
 		"UnityStartingSignal", /* signal */
+		g_variant_new("(s)", "fooapp"), /* params */
+		NULL);
+
+	g_dbus_connection_emit_signal(con,
+		g_dbus_connection_get_unique_name(con), /* destination */
+		"/", /* path */
+		"com.canonical.UbuntuAppLaunch", /* interface */
+		"UnityStartingApproved", /* signal */
 		g_variant_new("(sb)", "fooapp", TRUE), /* params */
 		NULL);
 
@@ -114,6 +122,14 @@ TEST_F(HelperHandshakeTest, UnapprovedHandshake)
 		"/", /* path */
 		"com.canonical.UbuntuAppLaunch", /* interface */
 		"UnityStartingSignal", /* signal */
+		g_variant_new("(s)", "fooapp"), /* params */
+		NULL);
+
+	g_dbus_connection_emit_signal(con,
+		g_dbus_connection_get_unique_name(con), /* destination */
+		"/", /* path */
+		"com.canonical.UbuntuAppLaunch", /* interface */
+		"UnityStartingApproved", /* signal */
 		g_variant_new("(sb)", "fooapp", FALSE), /* params */
 		NULL);
 
@@ -140,6 +156,14 @@ TEST_F(HelperHandshakeTest, InvalidHandshake)
 		"/", /* path */
 		"com.canonical.UbuntuAppLaunch", /* interface */
 		"UnityStartingSignal", /* signal */
+		g_variant_new("(s)", "fooapp"), /* params */
+		NULL);
+
+	g_dbus_connection_emit_signal(con,
+		g_dbus_connection_get_unique_name(con), /* destination */
+		"/", /* path */
+		"com.canonical.UbuntuAppLaunch", /* interface */
+		"UnityStartingApproved", /* signal */
 		g_variant_new("(ss)", "fooapp", "true"), /* bad params */
 		NULL);
 
@@ -155,6 +179,7 @@ two_second_reached (gpointer user_data)
 {
 	bool * reached = static_cast<bool *>(user_data);
 	*reached = true;
+	return G_SOURCE_REMOVE;
 }
 
 TEST_F(HelperHandshakeTest, HandshakeTimeout)
@@ -167,6 +192,135 @@ TEST_F(HelperHandshakeTest, HandshakeTimeout)
 	ASSERT_FALSE(starting_handshake_wait(handshake));
 
 	ASSERT_FALSE(timeout_reached);
+	g_source_remove(outertimeout);
 
 	return;
 }
+
+TEST_F(HelperHandshakeTest, HandshakeTimeoutWithOnlyApprovedSignal)
+{
+	bool timeout_reached = false;
+	GDBusConnection * con = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
+
+	guint outertimeout = g_timeout_add_seconds(2, two_second_reached, &timeout_reached);
+
+	guint filter = g_dbus_connection_add_filter(con, filter_func, this, NULL);
+	handshake_t * handshake = starting_handshake_start("fooapp");
+	g_main_loop_run(mainloop);
+	g_dbus_connection_remove_filter(con, filter);
+
+	g_dbus_connection_emit_signal(con,
+		g_dbus_connection_get_unique_name(con), /* destination */
+		"/", /* path */
+		"com.canonical.UbuntuAppLaunch", /* interface */
+		"UnityStartingApproved", /* signal */
+		g_variant_new("(sb)", "fooapp", true), /* bad params */
+		NULL);
+
+	ASSERT_FALSE(starting_handshake_wait(handshake));
+
+	ASSERT_FALSE(timeout_reached);
+	g_source_remove(outertimeout);
+
+	g_object_unref(con);
+
+	return;
+}
+
+static gboolean
+emit_approval (gpointer user_data)
+{
+	GDBusConnection * con = (GDBusConnection *) user_data;
+
+	g_dbus_connection_emit_signal(con,
+		g_dbus_connection_get_unique_name(con), /* destination */
+		"/", /* path */
+		"com.canonical.UbuntuAppLaunch", /* interface */
+		"UnityStartingApproved", /* signal */
+		g_variant_new("(sb)", "fooapp", true), /* params */
+		NULL);
+
+	return G_SOURCE_REMOVE;
+}
+
+TEST_F(HelperHandshakeTest, HandshakeNoTimeoutWithReceivedSignal)
+{
+	bool timeout_reached = false;
+	GDBusConnection * con = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
+
+	g_timeout_add_seconds(2, two_second_reached, &timeout_reached);
+	g_timeout_add_seconds(2, emit_approval, con);
+
+	guint filter = g_dbus_connection_add_filter(con, filter_func, this, NULL);
+	handshake_t * handshake = starting_handshake_start("fooapp");
+	g_main_loop_run(mainloop);
+	g_dbus_connection_remove_filter(con, filter);
+
+	g_dbus_connection_emit_signal(con,
+		g_dbus_connection_get_unique_name(con), /* destination */
+		"/", /* path */
+		"com.canonical.UbuntuAppLaunch", /* interface */
+		"UnityStartingSignal", /* signal */
+		g_variant_new("(s)", "fooapp"), /* params */
+		NULL);
+
+	ASSERT_TRUE(starting_handshake_wait(handshake));
+
+	ASSERT_TRUE(timeout_reached);
+
+	g_object_unref(con);
+
+	return;
+}
+
+static gboolean
+emit_name_change (gpointer user_data)
+{
+	GDBusConnection * con = (GDBusConnection *) user_data;
+	const gchar *unique_name = g_dbus_connection_get_unique_name(con);
+
+	// We are allowed to emit this (instead of DBus) because we link against
+	// helpers-test, a special version of the helper code that listens
+	// for this signal from anyone.
+	g_dbus_connection_emit_signal(con,
+		unique_name, /* destination */
+		"/org/freedesktop/DBus", /* path */
+		"org.freedesktop.DBus", /* interface */
+		"NameOwnerChanged", /* signal */
+		g_variant_new("(sss)", unique_name, unique_name, ""), /* params */
+		NULL);
+
+	return G_SOURCE_REMOVE;
+}
+
+TEST_F(HelperHandshakeTest, StopsWaitingIfUnityExits)
+{
+	bool timeout_reached = false;
+	GDBusConnection * con = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
+
+	g_timeout_add_seconds(1, emit_name_change, con);
+	guint outertimeout = g_timeout_add_seconds(2, two_second_reached, &timeout_reached);
+
+	guint filter = g_dbus_connection_add_filter(con, filter_func, this, NULL);
+	handshake_t * handshake = starting_handshake_start("fooapp");
+	g_main_loop_run(mainloop);
+	g_dbus_connection_remove_filter(con, filter);
+
+	g_dbus_connection_emit_signal(con,
+		g_dbus_connection_get_unique_name(con), /* destination */
+		"/", /* path */
+		"com.canonical.UbuntuAppLaunch", /* interface */
+		"UnityStartingSignal", /* signal */
+		g_variant_new("(s)", "fooapp"), /* params */
+		NULL);
+
+	ASSERT_FALSE(starting_handshake_wait(handshake));
+
+	ASSERT_FALSE(timeout_reached);
+	g_source_remove(outertimeout);
+
+	g_object_unref(con);
+
+	return;
+}
+

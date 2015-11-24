@@ -180,11 +180,10 @@ gboolean   ubuntu_app_launch_observer_add_app_starting (UbuntuAppLaunchAppObserv
  * registered with ubuntu_app_launch_observer_add_app_starting.
  * If the app is allowed to continue starting, pass TRUE.
  *
- * This should only be called once for the entire bus.
- *
  * Return value: Whether finish app startup was successful.
  */
-gboolean   ubuntu_app_launch_observer_finish_app_starting (const gchar *appid, gboolean approved);
+gboolean   ubuntu_app_launch_observer_finish_app_starting (const gchar *appid,
+                                                           gboolean     approved);
 /**
  * ubuntu_app_launch_observer_add_app_started:
  * @observer: (scope notified): Callback when an application started

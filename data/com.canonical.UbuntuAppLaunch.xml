@@ -15,6 +15,9 @@
 		</signal>
 		<signal name="UnityStartingSignal">
 			<arg type="s" name="appid" />
+		</signal>
+		<signal name="UnityStartingApproved">
+			<arg type="s" name="appid" />
 			<arg type="b" name="approved" />
 		</signal>
 		<signal name="ApplicationFailed">

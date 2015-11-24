@@ -1014,7 +1014,21 @@ starting_signal_cb (GDBusConnection * conn, const gchar * sender, const gchar * 
 {
 	ual_tracepoint(observer_start, "starting");
 
-	generic_signal_cb(conn, sender, object, interface, signal, params, user_data);
+	GError * error = NULL;
+	g_dbus_connection_emit_signal(conn,
+		sender, /* destination */
+		"/", /* path */
+		"com.canonical.UbuntuAppLaunch", /* interface */
+		"UnityStartingSignal", /* signal */
+		params, /* params, same */
+		&error);
+
+	if (error != NULL) {
+		g_warning("Unable to emit response signal: %s", error->message);
+		g_error_free(error);
+	} else {
+		generic_signal_cb(conn, sender, object, interface, signal, params, user_data);
+	}
 
 	ual_tracepoint(observer_finish, "starting");
 }
@@ -1029,7 +1043,6 @@ gboolean
 ubuntu_app_launch_observer_finish_app_starting (const gchar *appid, gboolean approved)
 {
 	GDBusConnection * conn = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
-
 	if (conn == NULL) {
 		return FALSE;
 	}
@@ -1039,7 +1052,7 @@ ubuntu_app_launch_observer_finish_app_starting (const gchar *appid, gboolean app
 		NULL, /* destination */
 		"/", /* path */
 		"com.canonical.UbuntuAppLaunch", /* interface */
-		"UnityStartingSignal", /* signal */
+		"UnityStartingApproved", /* signal */
 		g_variant_new("(sb)", appid, approved), /* params */
 		&error);
 	g_object_unref(conn);

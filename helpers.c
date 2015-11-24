@@ -477,14 +477,63 @@ struct _handshake_t {
 	GDBusConnection * con;
 	GMainLoop * mainloop;
 	guint signal_subscribe;
+	guint approved_subscribe;
+	guint name_subscribe;
 	guint timeout;
+	gboolean received;
+	gchar *receiver;
 	gboolean approved;
 };
+
+static void
+unity_name_cb (GDBusConnection * con, const gchar * sender, const gchar * path, const gchar * interface, const gchar * signal, GVariant * params, gpointer user_data)
+{
+	handshake_t * handshake = (handshake_t *)user_data;
+
+	if (g_variant_check_format_string(params, "(sss)", FALSE)) {
+		const gchar *new_name = NULL;
+		g_variant_get(params, "(ss&s)", NULL, NULL, &new_name);
+
+		if (new_name == NULL || new_name[0] == 0) {
+			// The process we were talking to exited!  Let's stop waiting.
+			g_main_loop_quit(handshake->mainloop);
+		}
+	}
+}
 
 static void
 unity_signal_cb (GDBusConnection * con, const gchar * sender, const gchar * path, const gchar * interface, const gchar * signal, GVariant * params, gpointer user_data)
 {
 	handshake_t * handshake = (handshake_t *)user_data;
+
+	if (!handshake->received) { // only allow the first responder
+		handshake->receiver = g_strdup(sender);
+		handshake->received = TRUE;
+
+		handshake->name_subscribe = g_dbus_connection_signal_subscribe(handshake->con,
+#ifdef UAL_TEST_MODE
+            NULL, /* accept from any sender, making it easier for tests to fake this signal */
+#else
+			"org.freedesktop.DBus", /* sender */
+#endif
+			"org.freedesktop.DBus", /* interface */
+			"NameOwnerChanged", /* signal */
+			"/org/freedesktop/DBus", /* path */
+			sender, /* arg0 */
+			G_DBUS_SIGNAL_FLAGS_NONE,
+			unity_name_cb, handshake,
+			NULL); /* user data destroy */
+	}
+}
+
+static void
+unity_approved_cb (GDBusConnection * con, const gchar * sender, const gchar * path, const gchar * interface, const gchar * signal, GVariant * params, gpointer user_data)
+{
+	handshake_t * handshake = (handshake_t *)user_data;
+
+	if (!handshake->received || g_strcmp0(sender, handshake->receiver) != 0) {
+		return;
+	}
 
 	if (g_variant_check_format_string(params, "(sb)", FALSE)) {
 		g_variant_get(params, "(sb)", NULL, &handshake->approved);
@@ -497,7 +546,9 @@ static gboolean
 unity_too_slow_cb (gpointer user_data)
 {
 	handshake_t * handshake = (handshake_t *)user_data;
-	g_main_loop_quit(handshake->mainloop);
+	if (!handshake->received) {
+		g_main_loop_quit(handshake->mainloop);
+	}
 	handshake->timeout = 0;
 	return G_SOURCE_REMOVE;
 }
@@ -529,6 +580,16 @@ starting_handshake_start (const gchar *   app_id)
 		unity_signal_cb, handshake,
 		NULL); /* user data destroy */
 
+	handshake->approved_subscribe = g_dbus_connection_signal_subscribe(handshake->con,
+		NULL, /* sender */
+		"com.canonical.UbuntuAppLaunch", /* interface */
+		"UnityStartingApproved", /* signal */
+		"/", /* path */
+		app_id, /* arg0 */
+		G_DBUS_SIGNAL_FLAGS_NONE,
+		unity_approved_cb, handshake,
+		NULL); /* user data destroy */
+
 	/* Send unfreeze to to Unity */
 	g_dbus_connection_emit_signal(handshake->con,
 		NULL, /* destination */
@@ -538,7 +599,7 @@ starting_handshake_start (const gchar *   app_id)
 		g_variant_new("(s)", app_id),
 		&error);
 
-	/* Really, Unity? */
+	/* In case Unity is either not running or taking way too long, we early exit after 1s */
 	handshake->timeout = g_timeout_add_seconds(1, unity_too_slow_cb, handshake);
 
 	return handshake;
@@ -557,6 +618,11 @@ starting_handshake_wait (handshake_t * handshake)
 		g_source_remove(handshake->timeout);
 	g_main_loop_unref(handshake->mainloop);
 	g_dbus_connection_signal_unsubscribe(handshake->con, handshake->signal_subscribe);
+	g_dbus_connection_signal_unsubscribe(handshake->con, handshake->approved_subscribe);
+	if (handshake->name_subscribe != 0) {
+		g_dbus_connection_signal_unsubscribe(handshake->con, handshake->name_subscribe);
+	}
+	g_free(handshake->receiver);
 	g_object_unref(handshake->con);
 
 	g_free(handshake);

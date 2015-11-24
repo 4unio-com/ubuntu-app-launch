@@ -90,6 +90,10 @@ add_definitions( -DXMIR_HELPER="${pkglibexecdir}/xmir-helper" )
 add_library(helpers STATIC helpers.c helpers-shared.c libubuntu-app-launch/recoverable-problem.c)
 target_link_libraries(helpers ${GIO2_LIBRARIES} ${JSONGLIB_LIBRARIES} ${CLICK_LIBRARIES})
 
+add_library(helpers-test STATIC helpers.c helpers-shared.c libubuntu-app-launch/recoverable-problem.c)
+set_target_properties(helpers-test PROPERTIES COMPILE_DEFINITIONS "UAL_TEST_MODE")
+target_link_libraries(helpers-test ${GIO2_LIBRARIES} ${JSONGLIB_LIBRARIES} ${CLICK_LIBRARIES})
+
 ####################
 # desktop-hook
 ####################
