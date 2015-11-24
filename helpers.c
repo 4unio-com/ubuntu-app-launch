@@ -512,7 +512,7 @@ unity_signal_cb (GDBusConnection * con, const gchar * sender, const gchar * path
 
 		handshake->name_subscribe = g_dbus_connection_signal_subscribe(handshake->con,
 #ifdef UAL_TEST_MODE
-            NULL, /* accept from any sender, making it easier for tests to fake this signal */
+			NULL, /* accept from any sender, making it easier for tests to fake this signal */
 #else
 			"org.freedesktop.DBus", /* sender */
 #endif

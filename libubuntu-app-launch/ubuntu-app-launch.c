@@ -1020,7 +1020,7 @@ starting_signal_cb (GDBusConnection * conn, const gchar * sender, const gchar * 
 		"/", /* path */
 		"com.canonical.UbuntuAppLaunch", /* interface */
 		"UnityStartingSignal", /* signal */
-		params, /* params, same */
+		params, /* params, the same */
 		&error);
 
 	if (error != NULL) {
