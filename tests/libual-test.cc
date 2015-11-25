@@ -436,6 +436,140 @@ TEST_F(LibUAL, StartApplicationTest)
 	g_variant_unref(env);
 }
 
+typedef struct {
+	int count;
+	GMainLoop *loop;
+} async_data_t;
+
+static void
+async_test_app_focused_cb (const gchar * appid, gpointer user_data)
+{
+	async_data_t * data = (async_data_t *)user_data;
+	data->count++;
+	g_main_loop_quit(data->loop);
+}
+
+static gboolean
+two_second_reached (gpointer user_data)
+{
+	GMainLoop * loop = (GMainLoop *)user_data;
+	g_main_loop_quit(loop);
+	return G_SOURCE_REMOVE;
+}
+
+TEST_F(LibUAL, StartApplicationAsync)
+{
+	DbusTestDbusMockObject * obj = dbus_test_dbus_mock_get_object(mock, "/com/test/application_click", "com.ubuntu.Upstart0_6.Job", NULL);
+
+	async_data_t data = {
+		.count = 0,
+		.loop = g_main_loop_new(NULL, FALSE)
+	};
+
+	ASSERT_TRUE(ubuntu_app_launch_observer_add_app_focus(async_test_app_focused_cb, &data));
+
+	/* Basic make sure we can send the event */
+	guint outertimeout = g_timeout_add_seconds(2, two_second_reached, data.loop);
+	ubuntu_app_launch_start_application_async("com.test.good_application_1.2.3", NULL);
+	g_main_loop_run(data.loop);
+	g_source_remove(outertimeout);
+	ASSERT_EQ(1, data.count);
+
+	EXPECT_EQ(1, dbus_test_dbus_mock_object_check_method_call(mock, obj, "Start", NULL, NULL));
+	ASSERT_TRUE(dbus_test_dbus_mock_object_clear_method_calls(mock, obj, NULL));
+
+	/* Now look at the details of the call */
+	outertimeout = g_timeout_add_seconds(2, two_second_reached, data.loop);
+	ubuntu_app_launch_start_application_async("com.test.good_application_1.2.3", NULL);
+	g_main_loop_run(data.loop);
+	g_source_remove(outertimeout);
+	ASSERT_EQ(2, data.count);
+
+	guint len = 0;
+	const DbusTestDbusMockCall * calls = dbus_test_dbus_mock_object_get_method_calls(mock, obj, "Start", &len, NULL);
+	EXPECT_NE(nullptr, calls);
+	EXPECT_EQ(1, len);
+
+	EXPECT_STREQ("Start", calls->name);
+	EXPECT_EQ(2, g_variant_n_children(calls->params));
+
+	GVariant * block = g_variant_get_child_value(calls->params, 1);
+	EXPECT_TRUE(g_variant_get_boolean(block));
+	g_variant_unref(block);
+
+	GVariant * env = g_variant_get_child_value(calls->params, 0);
+	EXPECT_TRUE(check_env(env, "APP_ID", "com.test.good_application_1.2.3"));
+	g_variant_unref(env);
+
+	ASSERT_TRUE(dbus_test_dbus_mock_object_clear_method_calls(mock, obj, NULL));
+
+	/* Let's pass some URLs */
+	const gchar * urls[] = {
+		"http://ubuntu.com/",
+		"https://ubuntu.com/",
+		"file:///home/phablet/test.txt",
+		NULL
+	};
+	outertimeout = g_timeout_add_seconds(2, two_second_reached, data.loop);
+	ubuntu_app_launch_start_application("com.test.good_application_1.2.3", urls);
+	g_main_loop_run(data.loop);
+	g_source_remove(outertimeout);
+	ASSERT_EQ(3, data.count);
+
+	len = 0;
+	calls = dbus_test_dbus_mock_object_get_method_calls(mock, obj, "Start", &len, NULL);
+	EXPECT_NE(nullptr, calls);
+	EXPECT_EQ(1, len);
+
+	env = g_variant_get_child_value(calls->params, 0);
+	EXPECT_TRUE(check_env(env, "APP_ID", "com.test.good_application_1.2.3"));
+	EXPECT_TRUE(check_env(env, "APP_URIS", "'http://ubuntu.com/' 'https://ubuntu.com/' 'file:///home/phablet/test.txt'"));
+	g_variant_unref(env);
+
+	ASSERT_TRUE(ubuntu_app_launch_observer_delete_app_focus(async_test_app_focused_cb, &data));
+	g_main_loop_unref(data.loop);
+
+	return;
+}
+
+TEST_F(LibUAL, StartApplicationAsyncTest)
+{
+	DbusTestDbusMockObject * obj = dbus_test_dbus_mock_get_object(mock, "/com/test/application_click", "com.ubuntu.Upstart0_6.Job", NULL);
+
+	async_data_t data = {
+		.count = 0,
+		.loop = g_main_loop_new(NULL, FALSE)
+	};
+
+	ASSERT_TRUE(ubuntu_app_launch_observer_add_app_focus(async_test_app_focused_cb, &data));
+
+	guint outertimeout = g_timeout_add_seconds(2, two_second_reached, data.loop);
+	ubuntu_app_launch_start_application_async_test("com.test.good_application_1.2.3", NULL);
+	g_main_loop_run(data.loop);
+	g_source_remove(outertimeout);
+	ASSERT_EQ(1, data.count);
+
+	guint len = 0;
+	const DbusTestDbusMockCall * calls = dbus_test_dbus_mock_object_get_method_calls(mock, obj, "Start", &len, NULL);
+	EXPECT_NE(nullptr, calls);
+	EXPECT_EQ(1, len);
+
+	EXPECT_STREQ("Start", calls->name);
+	EXPECT_EQ(2, g_variant_n_children(calls->params));
+
+	GVariant * block = g_variant_get_child_value(calls->params, 1);
+	EXPECT_TRUE(g_variant_get_boolean(block));
+	g_variant_unref(block);
+
+	GVariant * env = g_variant_get_child_value(calls->params, 0);
+	EXPECT_TRUE(check_env(env, "APP_ID", "com.test.good_application_1.2.3"));
+	EXPECT_TRUE(check_env(env, "QT_LOAD_TESTABILITY", "1"));
+	g_variant_unref(env);
+
+	ASSERT_TRUE(ubuntu_app_launch_observer_delete_app_focus(async_test_app_focused_cb, &data));
+	g_main_loop_unref(data.loop);
+}
+
 TEST_F(LibUAL, StopApplication)
 {
 	DbusTestDbusMockObject * obj = dbus_test_dbus_mock_get_object(mock, "/com/test/application_click", "com.ubuntu.Upstart0_6.Job", NULL);

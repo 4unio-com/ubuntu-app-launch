@@ -51,13 +51,6 @@ click_task_setup (GDBusConnection * bus, const gchar * app_id, EnvHandle * handl
 
 	GError * error = NULL;
 
-	handshake_t * handshake = starting_handshake_start(app_id);
-	if (handshake == NULL) {
-		g_warning("Unable to setup starting handshake");
-	}
-
-	ual_tracepoint(click_starting_sent, app_id);
-
 	gchar * package = NULL;
 	/* 'Parse' the App ID */
 	if (!app_id_to_triplet(app_id, &package, NULL, NULL)) {
@@ -160,11 +153,5 @@ click_task_setup (GDBusConnection * bus, const gchar * app_id, EnvHandle * handl
 	g_key_file_unref(keyfile);
 	g_free(desktopfile);
 
-	ual_tracepoint(handshake_wait, app_id);
-
-	gboolean approved = starting_handshake_wait(handshake);
-
-	ual_tracepoint(handshake_complete, app_id);
-
-	return approved;
+	return TRUE;
 }

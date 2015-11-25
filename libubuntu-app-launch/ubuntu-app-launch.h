@@ -97,6 +97,31 @@ gboolean   ubuntu_app_launch_start_application_test    (const gchar *           
                                                          const gchar * const *             uris);
 
 /**
+ * ubuntu_app_launch_start_application_async:
+ * @appid: ID of the application to launch
+ * @uris: (allow-none) (array zero-terminated=1) (element-type utf8) (transfer none): A NULL terminated list of URIs to send to the application
+ *
+ * Asks upstart to launch an application, but does not block.  To discover
+ * whether it successfully started or not, register an observer.  For example,
+ * call ubuntu_app_launch_observer_add_app_started.
+ */
+void   ubuntu_app_launch_start_application_async         (const gchar *                     appid,
+                                                          const gchar * const *             uris);
+
+/**
+ * ubuntu_app_launch_start_application_async_test:
+ * @appid: ID of the application to launch
+ * @uris: (allow-none) (array zero-terminated=1) (element-type utf8) (transfer none): A NULL terminated list of URIs to send to the application
+ *
+ * Asks upstart to launch an application with environment variables set
+ * to enable testing, but does not block.  To discover whether it successfully
+ * started or not, register an observer.  For example, call
+ * ubuntu_app_launch_observer_add_app_started.  Should only be used in testing.
+ */
+void   ubuntu_app_launch_start_application_async_test    (const gchar *                     appid,
+                                                          const gchar * const *             uris);
+
+/**
  * ubuntu_app_launch_stop_application:
  * @appid: ID of the application to launch
  *

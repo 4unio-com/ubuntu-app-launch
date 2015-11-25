@@ -44,6 +44,24 @@ TRACEPOINT_EVENT(ubuntu_app_launch, libual_start_message_callback,
 		ctf_string(appid, appid)
 	)
 )
+TRACEPOINT_EVENT(ubuntu_app_launch, libual_handshake_start,
+	TP_ARGS(const char *, appid),
+	TP_FIELDS(
+		ctf_string(appid, appid)
+	)
+)
+TRACEPOINT_EVENT(ubuntu_app_launch, libual_handshake_wait,
+	TP_ARGS(const char *, appid),
+	TP_FIELDS(
+		ctf_string(appid, appid)
+	)
+)
+TRACEPOINT_EVENT(ubuntu_app_launch, libual_handshake_complete,
+	TP_ARGS(const char *, appid),
+	TP_FIELDS(
+		ctf_string(appid, appid)
+	)
+)
 
 /*******************************
   LibUAL observers
@@ -211,12 +229,6 @@ TRACEPOINT_EVENT(ubuntu_app_launch, click_start,
 		ctf_string(appid, appid)
 	)
 )
-TRACEPOINT_EVENT(ubuntu_app_launch, click_starting_sent,
-	TP_ARGS(const char *, appid),
-	TP_FIELDS(
-		ctf_string(appid, appid)
-	)
-)
 TRACEPOINT_EVENT(ubuntu_app_launch, click_found_pkgdir,
 	TP_ARGS(const char *, appid),
 	TP_FIELDS(
@@ -247,30 +259,12 @@ TRACEPOINT_EVENT(ubuntu_app_launch, click_send_env_vars,
 		ctf_string(appid, appid)
 	)
 )
-TRACEPOINT_EVENT(ubuntu_app_launch, handshake_wait,
-	TP_ARGS(const char *, appid),
-	TP_FIELDS(
-		ctf_string(appid, appid)
-	)
-)
-TRACEPOINT_EVENT(ubuntu_app_launch, handshake_complete,
-	TP_ARGS(const char *, appid),
-	TP_FIELDS(
-		ctf_string(appid, appid)
-	)
-)
 
 /*******************************
   Desktop Exec
  *******************************/
 
 TRACEPOINT_EVENT(ubuntu_app_launch, desktop_start,
-	TP_ARGS(const char *, appid),
-	TP_FIELDS(
-		ctf_string(appid, appid)
-	)
-)
-TRACEPOINT_EVENT(ubuntu_app_launch, desktop_starting_sent,
 	TP_ARGS(const char *, appid),
 	TP_FIELDS(
 		ctf_string(appid, appid)

@@ -126,13 +126,6 @@ desktop_task_setup (GDBusConnection * bus, const gchar * app_id, EnvHandle * han
 
 	ual_tracepoint(desktop_start, app_id);
 
-	handshake_t * handshake = starting_handshake_start(app_id);
-	if (handshake == NULL) {
-		g_warning("Unable to setup starting handshake");
-	}
-
-	ual_tracepoint(desktop_starting_sent, app_id);
-
 	gchar * desktopfilename = NULL;
 	GKeyFile * keyfile = NULL;
 	gchar * libertinecontainer = NULL;
@@ -208,11 +201,5 @@ desktop_task_setup (GDBusConnection * bus, const gchar * app_id, EnvHandle * han
 
 	g_key_file_free(keyfile);
 
-	ual_tracepoint(handshake_wait, app_id);
-
-	gboolean approved = starting_handshake_wait(handshake);
-
-	ual_tracepoint(handshake_complete, app_id);
-
-	return approved;
+	return TRUE;
 }

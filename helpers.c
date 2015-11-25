@@ -482,8 +482,52 @@ struct _handshake_t {
 	guint timeout;
 	gboolean received;
 	gchar *receiver;
-	gboolean approved;
+	HandshakeCallback callback;
+	gpointer user_data;
+	GDestroyNotify user_data_free;
 };
+
+static void
+handshake_free(handshake_t * handshake)
+{
+	if (handshake->timeout != 0) {
+		g_source_remove(handshake->timeout);
+	}
+	if (handshake->mainloop != NULL) {
+		g_main_loop_unref(handshake->mainloop);
+	}
+	if (handshake->signal_subscribe != 0) {
+		g_dbus_connection_signal_unsubscribe(handshake->con, handshake->signal_subscribe);
+	}
+	if (handshake->approved_subscribe != 0) {
+		g_dbus_connection_signal_unsubscribe(handshake->con, handshake->approved_subscribe);
+	}
+	if (handshake->name_subscribe != 0) {
+		g_dbus_connection_signal_unsubscribe(handshake->con, handshake->name_subscribe);
+	}
+	g_free(handshake->receiver);
+	g_object_unref(handshake->con);
+
+	if (handshake->user_data_free != NULL && handshake->user_data != NULL) {
+		handshake->user_data_free(handshake->user_data);
+	}
+
+	g_free(handshake);
+}
+
+static void
+handshake_stop(handshake_t * handshake, gboolean approved)
+{
+	if (approved) {
+		handshake->callback(handshake->user_data);
+	}
+
+	if (handshake->mainloop != NULL) {
+		g_main_loop_quit(handshake->mainloop);
+	}
+
+	handshake_free(handshake);
+}
 
 static void
 unity_name_cb (GDBusConnection * con, const gchar * sender, const gchar * path, const gchar * interface, const gchar * signal, GVariant * params, gpointer user_data)
@@ -496,7 +540,7 @@ unity_name_cb (GDBusConnection * con, const gchar * sender, const gchar * path, 
 
 		if (new_name == NULL || new_name[0] == 0) {
 			// The process we were talking to exited!  Let's stop waiting.
-			g_main_loop_quit(handshake->mainloop);
+			handshake_stop(handshake, FALSE);
 		}
 	}
 }
@@ -535,37 +579,40 @@ unity_approved_cb (GDBusConnection * con, const gchar * sender, const gchar * pa
 		return;
 	}
 
+	gboolean approved = FALSE;
 	if (g_variant_check_format_string(params, "(sb)", FALSE)) {
-		g_variant_get(params, "(sb)", NULL, &handshake->approved);
+		g_variant_get(params, "(sb)", NULL, &approved);
 	}
 
-	g_main_loop_quit(handshake->mainloop);
+	handshake_stop(handshake, approved);
 }
 
 static gboolean
 unity_too_slow_cb (gpointer user_data)
 {
 	handshake_t * handshake = (handshake_t *)user_data;
-	if (!handshake->received) {
-		g_main_loop_quit(handshake->mainloop);
-	}
 	handshake->timeout = 0;
+	if (!handshake->received) {
+		handshake_stop(handshake, FALSE);
+	}
 	return G_SOURCE_REMOVE;
 }
 
 handshake_t *
-starting_handshake_start (const gchar *   app_id)
+starting_handshake_start (const gchar * app_id, HandshakeCallback callback, gpointer user_data, GDestroyNotify user_data_free)
 {
 	GError * error = NULL;
 	handshake_t * handshake = g_new0(handshake_t, 1);
 
-	handshake->mainloop = g_main_loop_new(NULL, FALSE);
-	handshake->con = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, &error);
+	handshake->callback = callback;
+	handshake->user_data = user_data;
+	handshake->user_data_free = user_data_free;
 
+	handshake->con = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, &error);
 	if (error != NULL) {
 		g_critical("Unable to connect to session bus: %s", error->message);
 		g_error_free(error);
-		g_free(handshake);
+		handshake_free(handshake);
 		return NULL;
 	}
 
@@ -605,29 +652,14 @@ starting_handshake_start (const gchar *   app_id)
 	return handshake;
 }
 
-gboolean
+void
 starting_handshake_wait (handshake_t * handshake)
 {
 	if (handshake == NULL)
-		return FALSE;
+		return;
 
+	handshake->mainloop = g_main_loop_new(NULL, FALSE);
 	g_main_loop_run(handshake->mainloop);
-
-	gboolean approved = handshake->approved;
-	if (handshake->timeout != 0)
-		g_source_remove(handshake->timeout);
-	g_main_loop_unref(handshake->mainloop);
-	g_dbus_connection_signal_unsubscribe(handshake->con, handshake->signal_subscribe);
-	g_dbus_connection_signal_unsubscribe(handshake->con, handshake->approved_subscribe);
-	if (handshake->name_subscribe != 0) {
-		g_dbus_connection_signal_unsubscribe(handshake->con, handshake->name_subscribe);
-	}
-	g_free(handshake->receiver);
-	g_object_unref(handshake->con);
-
-	g_free(handshake);
-
-	return approved;
 }
 
 EnvHandle *

@@ -71,6 +71,14 @@ typedef struct {
 } app_start_t;
 
 static void
+app_start_data_free (app_start_t *data)
+{
+	g_free(data->appid);
+	g_free(data->uris);
+	g_free(data);
+}
+
+static void
 application_start_cb (GObject * obj, GAsyncResult * res, gpointer user_data)
 {
 	app_start_t * data = (app_start_t *)user_data;
@@ -101,9 +109,7 @@ application_start_cb (GObject * obj, GAsyncResult * res, gpointer user_data)
 		g_error_free(error);
 	}
 
-	g_free(data->appid);
-	g_free(data->uris);
-	g_free(data);
+	app_start_data_free(data);
 }
 
 /* Get the path of the job from Upstart, if we've got it already, we'll just
@@ -220,8 +226,55 @@ is_libertine (const gchar * appid)
 	}
 }
 
+typedef struct {
+	gchar * jobpath;
+	GVariant * params;
+	app_start_t * app_start_data;
+} handshake_data_t;
+
+static void
+handshake_data_free (handshake_data_t *data)
+{
+	g_free(data->jobpath);
+	g_variant_unref(data->params);
+	app_start_data_free(data->app_start_data);
+	g_free(data);
+}
+
+static void
+handshake_cb (gpointer user_data)
+{
+	handshake_data_t *data = (handshake_data_t *) user_data;
+
+	GDBusConnection * con = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
+	g_return_if_fail(con != NULL);
+
+	/* Copy app start data, so it can be freed by application_start_cb */
+	app_start_t * app_data_copy = g_new0(app_start_t, 1);
+	app_data_copy->appid = g_strdup(data->app_start_data->appid);
+	app_data_copy->uris = g_strdup(data->app_start_data->uris);
+
+	/* Call the job start function */
+	g_dbus_connection_call(con,
+	                       DBUS_SERVICE_UPSTART,
+	                       data->jobpath,
+	                       DBUS_INTERFACE_UPSTART_JOB,
+	                       "Start",
+	                       data->params,
+	                       NULL,
+	                       G_DBUS_CALL_FLAGS_NONE,
+	                       -1,
+	                       NULL, /* cancelable */
+	                       application_start_cb,
+	                       app_data_copy);
+
+	ual_tracepoint(libual_start_message_sent, data->app_start_data->appid);
+
+	g_object_unref(con);
+}
+
 static gboolean
-start_application_core (const gchar * appid, const gchar * const * uris, gboolean test)
+start_application_core (const gchar * appid, const gchar * const * uris, gboolean async, gboolean test)
 {
 	ual_tracepoint(libual_start, appid);
 
@@ -300,24 +353,29 @@ start_application_core (const gchar * appid, const gchar * const * uris, gboolea
 	if (setup_complete) {
 		g_variant_builder_close(&builder);
 		g_variant_builder_add_value(&builder, g_variant_new_boolean(TRUE));
-	
-		/* Call the job start function */
-		g_dbus_connection_call(con,
-		                       DBUS_SERVICE_UPSTART,
-		                       jobpath,
-		                       DBUS_INTERFACE_UPSTART_JOB,
-		                       "Start",
-		                       g_variant_builder_end(&builder),
-		                       NULL,
-		                       G_DBUS_CALL_FLAGS_NONE,
-		                       -1,
-		                       NULL, /* cancelable */
-		                       application_start_cb,
-		                       app_start_data);
 
-		ual_tracepoint(libual_start_message_sent, appid);
+		ual_tracepoint(libual_handshake_start, appid);
+
+		handshake_data_t *handshake_data = g_new0(handshake_data_t, 1);
+		handshake_data->jobpath = g_strdup(jobpath);
+		handshake_data->params = g_variant_ref_sink(g_variant_builder_end(&builder));
+		handshake_data->app_start_data = app_start_data;
+
+		handshake_t * handshake = starting_handshake_start(appid, handshake_cb, handshake_data, (GDestroyNotify)handshake_data_free);
+
+		if (handshake == NULL) {
+			g_warning("Unable to setup starting handshake");
+			setup_complete = FALSE;
+		} else if (!async) {
+			ual_tracepoint(libual_handshake_wait, appid);
+
+			starting_handshake_wait(handshake);
+		}
+
+		ual_tracepoint(libual_handshake_complete, appid);
 	} else {
 		g_variant_builder_clear(&builder);
+		app_start_data_free(app_start_data);
 	}
 
 	g_object_unref(con);
@@ -328,13 +386,25 @@ start_application_core (const gchar * appid, const gchar * const * uris, gboolea
 gboolean
 ubuntu_app_launch_start_application (const gchar * appid, const gchar * const * uris)
 {
-	return start_application_core(appid, uris, FALSE);
+	return start_application_core(appid, uris, FALSE, FALSE);
 }
 
 gboolean
 ubuntu_app_launch_start_application_test (const gchar * appid, const gchar * const * uris)
 {
-	return start_application_core(appid, uris, TRUE);
+	return start_application_core(appid, uris, FALSE, TRUE);
+}
+
+void
+ubuntu_app_launch_start_application_async (const gchar * appid, const gchar * const * uris)
+{
+	start_application_core(appid, uris, TRUE, FALSE);
+}
+
+void
+ubuntu_app_launch_start_application_async_test (const gchar * appid, const gchar * const * uris)
+{
+	start_application_core(appid, uris, TRUE, TRUE);
 }
 
 static void

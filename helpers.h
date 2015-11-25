@@ -21,6 +21,8 @@
 
 typedef struct _EnvHandle EnvHandle;
 
+typedef void (*HandshakeCallback) (gpointer user_data);
+
 gboolean  app_id_to_triplet      (const gchar *   app_id,
                                   gchar **        package,
                                   gchar **        application,
@@ -45,8 +47,11 @@ void        env_handle_add       (EnvHandle *     handle,
 void        env_handle_finish    (EnvHandle *     handle);
 
 typedef struct _handshake_t handshake_t;
-handshake_t * starting_handshake_start   (const gchar *   app_id);
-gboolean      starting_handshake_wait    (handshake_t *   handshake);
+handshake_t * starting_handshake_start   (const gchar * app_id,
+                                          HandshakeCallback callback,
+                                          gpointer user_data,
+                                          GDestroyNotify user_data_free);
+void          starting_handshake_wait    (handshake_t *   handshake);
 
 GDBusConnection * cgroup_manager_connection (void);
 void              cgroup_manager_unref (GDBusConnection * cgroup_manager);

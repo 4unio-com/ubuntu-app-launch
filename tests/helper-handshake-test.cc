@@ -72,12 +72,20 @@ filter_func (GDBusConnection * conn, GDBusMessage * message, gboolean incomming,
 	return static_cast<HelperHandshakeTest *>(user_data)->FilterFunc(conn, message, incomming);
 }
 
+static void
+handshake_cb (gpointer user_data)
+{
+	bool * reached = static_cast<bool *>(user_data);
+	*reached = true;
+}
+
 TEST_F(HelperHandshakeTest, BaseHandshake)
 {
+	bool handshake_succeeded = false;
 	GDBusConnection * con = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
 	guint filter = g_dbus_connection_add_filter(con, filter_func, this, NULL);
 
-	handshake_t * handshake = starting_handshake_start("fooapp");
+	handshake_t * handshake = starting_handshake_start("fooapp", handshake_cb, &handshake_succeeded, NULL);
 
 	g_main_loop_run(mainloop);
 
@@ -99,8 +107,9 @@ TEST_F(HelperHandshakeTest, BaseHandshake)
 		g_variant_new("(sb)", "fooapp", TRUE), /* params */
 		NULL);
 
-	ASSERT_TRUE(starting_handshake_wait(handshake));
+	starting_handshake_wait(handshake);
 
+	ASSERT_TRUE(handshake_succeeded);
 	g_object_unref(con);
 
 	return;
@@ -108,10 +117,11 @@ TEST_F(HelperHandshakeTest, BaseHandshake)
 
 TEST_F(HelperHandshakeTest, UnapprovedHandshake)
 {
+	bool handshake_succeeded = false;
 	GDBusConnection * con = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
 	guint filter = g_dbus_connection_add_filter(con, filter_func, this, NULL);
 
-	handshake_t * handshake = starting_handshake_start("fooapp");
+	handshake_t * handshake = starting_handshake_start("fooapp", handshake_cb, &handshake_succeeded, NULL);
 
 	g_main_loop_run(mainloop);
 
@@ -133,8 +143,9 @@ TEST_F(HelperHandshakeTest, UnapprovedHandshake)
 		g_variant_new("(sb)", "fooapp", FALSE), /* params */
 		NULL);
 
-	ASSERT_FALSE(starting_handshake_wait(handshake));
+	starting_handshake_wait(handshake);
 
+	ASSERT_FALSE(handshake_succeeded);
 	g_object_unref(con);
 
 	return;
@@ -142,10 +153,11 @@ TEST_F(HelperHandshakeTest, UnapprovedHandshake)
 
 TEST_F(HelperHandshakeTest, InvalidHandshake)
 {
+	bool handshake_succeeded = false;
 	GDBusConnection * con = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
 	guint filter = g_dbus_connection_add_filter(con, filter_func, this, NULL);
 
-	handshake_t * handshake = starting_handshake_start("fooapp");
+	handshake_t * handshake = starting_handshake_start("fooapp", handshake_cb, &handshake_succeeded, NULL);
 
 	g_main_loop_run(mainloop);
 
@@ -167,8 +179,9 @@ TEST_F(HelperHandshakeTest, InvalidHandshake)
 		g_variant_new("(ss)", "fooapp", "true"), /* bad params */
 		NULL);
 
-	ASSERT_FALSE(starting_handshake_wait(handshake));
+	starting_handshake_wait(handshake);
 
+	ASSERT_FALSE(handshake_succeeded);
 	g_object_unref(con);
 
 	return;
@@ -185,13 +198,15 @@ two_second_reached (gpointer user_data)
 TEST_F(HelperHandshakeTest, HandshakeTimeout)
 {
 	bool timeout_reached = false;
-	handshake_t * handshake = starting_handshake_start("fooapp");
+	bool handshake_succeeded = false;
+	handshake_t * handshake = starting_handshake_start("fooapp", handshake_cb, &handshake_succeeded, NULL);
 
 	guint outertimeout = g_timeout_add_seconds(2, two_second_reached, &timeout_reached);
 
-	ASSERT_FALSE(starting_handshake_wait(handshake));
+	starting_handshake_wait(handshake);
 
 	ASSERT_FALSE(timeout_reached);
+	ASSERT_FALSE(handshake_succeeded);
 	g_source_remove(outertimeout);
 
 	return;
@@ -200,12 +215,13 @@ TEST_F(HelperHandshakeTest, HandshakeTimeout)
 TEST_F(HelperHandshakeTest, HandshakeTimeoutWithOnlyApprovedSignal)
 {
 	bool timeout_reached = false;
+	bool handshake_succeeded = false;
 	GDBusConnection * con = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
 
 	guint outertimeout = g_timeout_add_seconds(2, two_second_reached, &timeout_reached);
 
 	guint filter = g_dbus_connection_add_filter(con, filter_func, this, NULL);
-	handshake_t * handshake = starting_handshake_start("fooapp");
+	handshake_t * handshake = starting_handshake_start("fooapp", handshake_cb, &handshake_succeeded, NULL);
 	g_main_loop_run(mainloop);
 	g_dbus_connection_remove_filter(con, filter);
 
@@ -217,11 +233,11 @@ TEST_F(HelperHandshakeTest, HandshakeTimeoutWithOnlyApprovedSignal)
 		g_variant_new("(sb)", "fooapp", true), /* bad params */
 		NULL);
 
-	ASSERT_FALSE(starting_handshake_wait(handshake));
+	starting_handshake_wait(handshake);
 
 	ASSERT_FALSE(timeout_reached);
+	ASSERT_FALSE(handshake_succeeded);
 	g_source_remove(outertimeout);
-
 	g_object_unref(con);
 
 	return;
@@ -246,13 +262,14 @@ emit_approval (gpointer user_data)
 TEST_F(HelperHandshakeTest, HandshakeNoTimeoutWithReceivedSignal)
 {
 	bool timeout_reached = false;
+	bool handshake_succeeded = false;
 	GDBusConnection * con = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
 
 	g_timeout_add_seconds(2, two_second_reached, &timeout_reached);
 	g_timeout_add_seconds(2, emit_approval, con);
 
 	guint filter = g_dbus_connection_add_filter(con, filter_func, this, NULL);
-	handshake_t * handshake = starting_handshake_start("fooapp");
+	handshake_t * handshake = starting_handshake_start("fooapp", handshake_cb, &handshake_succeeded, NULL);
 	g_main_loop_run(mainloop);
 	g_dbus_connection_remove_filter(con, filter);
 
@@ -264,9 +281,35 @@ TEST_F(HelperHandshakeTest, HandshakeNoTimeoutWithReceivedSignal)
 		g_variant_new("(s)", "fooapp"), /* params */
 		NULL);
 
-	ASSERT_TRUE(starting_handshake_wait(handshake));
+	starting_handshake_wait(handshake);
 
 	ASSERT_TRUE(timeout_reached);
+	ASSERT_TRUE(handshake_succeeded);
+	g_object_unref(con);
+
+	return;
+}
+
+TEST_F(HelperHandshakeTest, AsyncHandshake)
+{
+	GDBusConnection * con = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
+
+	g_timeout_add_seconds(2, emit_approval, con);
+
+	guint filter = g_dbus_connection_add_filter(con, filter_func, this, NULL);
+	handshake_t * handshake = starting_handshake_start("fooapp", (HandshakeCallback)g_main_loop_quit, mainloop, NULL);
+	g_main_loop_run(mainloop);
+	g_dbus_connection_remove_filter(con, filter);
+
+	g_dbus_connection_emit_signal(con,
+		g_dbus_connection_get_unique_name(con), /* destination */
+		"/", /* path */
+		"com.canonical.UbuntuAppLaunch", /* interface */
+		"UnityStartingSignal", /* signal */
+		g_variant_new("(s)", "fooapp"), /* params, the same */
+		NULL);
+
+	g_main_loop_run(mainloop);
 
 	g_object_unref(con);
 
@@ -296,13 +339,14 @@ emit_name_change (gpointer user_data)
 TEST_F(HelperHandshakeTest, StopsWaitingIfUnityExits)
 {
 	bool timeout_reached = false;
+	bool handshake_succeeded = false;
 	GDBusConnection * con = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
 
 	g_timeout_add_seconds(1, emit_name_change, con);
 	guint outertimeout = g_timeout_add_seconds(2, two_second_reached, &timeout_reached);
 
 	guint filter = g_dbus_connection_add_filter(con, filter_func, this, NULL);
-	handshake_t * handshake = starting_handshake_start("fooapp");
+	handshake_t * handshake = starting_handshake_start("fooapp", handshake_cb, &handshake_succeeded, NULL);
 	g_main_loop_run(mainloop);
 	g_dbus_connection_remove_filter(con, filter);
 
@@ -314,11 +358,11 @@ TEST_F(HelperHandshakeTest, StopsWaitingIfUnityExits)
 		g_variant_new("(s)", "fooapp"), /* params */
 		NULL);
 
-	ASSERT_FALSE(starting_handshake_wait(handshake));
+	starting_handshake_wait(handshake);
 
 	ASSERT_FALSE(timeout_reached);
+	ASSERT_FALSE(handshake_succeeded);
 	g_source_remove(outertimeout);
-
 	g_object_unref(con);
 
 	return;
