@@ -646,8 +646,8 @@ starting_handshake_start (const gchar * app_id, HandshakeCallback callback, gpoi
 		g_variant_new("(s)", app_id),
 		&error);
 
-	/* In case Unity is either not running or taking way too long, we early exit after 1s */
-	handshake->timeout = g_timeout_add_seconds(1, unity_too_slow_cb, handshake);
+	/* In case Unity is either not running or taking way too long, we early exit after 5s */
+	handshake->timeout = g_timeout_add_seconds(5, unity_too_slow_cb, handshake);
 
 	return handshake;
 }
