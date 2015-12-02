@@ -647,7 +647,11 @@ starting_handshake_start (const gchar * app_id, HandshakeCallback callback, gpoi
 		&error);
 
 	/* In case Unity is either not running or taking way too long, we early exit after 5s */
+#ifdef UAL_TEST_MODE
+	handshake->timeout = g_timeout_add_seconds(1, unity_too_slow_cb, handshake);
+#else
 	handshake->timeout = g_timeout_add_seconds(5, unity_too_slow_cb, handshake);
+#endif
 
 	return handshake;
 }
