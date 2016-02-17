@@ -1,8 +1,12 @@
-ubuntu-app-launch (0.9) UNRELEASED; urgency=medium
+ubuntu-app-launch (0.9~smw1) UNRELEASED; urgency=medium
 
+  [ Ted Gould ]
   * Add new C++ API that has a retained object for maintaining
     connections through multiple calls. Also provides for getting
     consistent application metadata.
+
+  [ Stephen M. Webb ]
+  * Fixed a coupla FTBFS and bumped version for Silo 58 testing.
 
  -- Ted Gould <ted@ubuntu.com>  Tue, 26 Jan 2016 15:22:06 -0600
 
