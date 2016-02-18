@@ -322,7 +322,7 @@ protected:
     }
 };
 
-TEST_F(LibUAL, StartApplication)
+TEST_F(LibUAL, DISABLED_StartApplication)
 {
     DbusTestDbusMockObject* obj =
         dbus_test_dbus_mock_get_object(mock, "/com/test/application_click", "com.ubuntu.Upstart0_6.Job", NULL);
@@ -379,7 +379,7 @@ TEST_F(LibUAL, StartApplication)
     return;
 }
 
-TEST_F(LibUAL, StartApplicationTest)
+TEST_F(LibUAL, DISABLED_StartApplicationTest)
 {
     DbusTestDbusMockObject* obj =
         dbus_test_dbus_mock_get_object(mock, "/com/test/application_click", "com.ubuntu.Upstart0_6.Job", NULL);
@@ -407,7 +407,7 @@ TEST_F(LibUAL, StartApplicationTest)
     g_variant_unref(env);
 }
 
-TEST_F(LibUAL, StopApplication)
+TEST_F(LibUAL, DISABLED_StopApplication)
 {
     DbusTestDbusMockObject* obj =
         dbus_test_dbus_mock_get_object(mock, "/com/test/application_click", "com.ubuntu.Upstart0_6.Job", NULL);
@@ -427,7 +427,7 @@ TEST_F(LibUAL, StopApplication)
    we're using one CACHE_HOME for this test suite and the libertine functions
    need to pull things from there, where these are only comparisons. It's just
    what value is in the environment variable */
-TEST_F(LibUAL, ApplicationLog)
+TEST_F(LibUAL, DISABLED_ApplicationLog)
 {
     auto appid = ubuntu::app_launch::AppID::parse("com.test.good_application_1.2.3");
     auto app = ubuntu::app_launch::Application::create(appid, registry);
@@ -449,7 +449,7 @@ TEST_F(LibUAL, ApplicationLog)
               app->instances()[0]->logPath());
 }
 
-TEST_F(LibUAL, ApplicationPid)
+TEST_F(LibUAL, DISABLED_ApplicationPid)
 {
     /* Check bad params */
     auto appid = ubuntu::app_launch::AppID::parse("com.test.good_application_1.2.3");
@@ -510,7 +510,7 @@ TEST_F(LibUAL, ApplicationPid)
     ASSERT_TRUE(dbus_test_dbus_mock_object_clear_method_calls(cgmock, cgobject, NULL));
 }
 
-TEST_F(LibUAL, ApplicationId)
+TEST_F(LibUAL, DISABLED_ApplicationId)
 {
     g_setenv("TEST_CLICK_DB", "click-db-dir", TRUE);
     g_setenv("TEST_CLICK_USER", "test-user", TRUE);
@@ -570,7 +570,7 @@ TEST_F(LibUAL, AppIdParse)
     return;
 }
 
-TEST_F(LibUAL, ApplicationList)
+TEST_F(LibUAL, DISABLED_ApplicationList)
 {
     auto apps = ubuntu::app_launch::Registry::runningApps(registry);
 
@@ -1572,7 +1572,7 @@ TEST_F(LibUAL, SetExec)
     ASSERT_TRUE(dbus_test_dbus_mock_object_clear_method_calls(mock, obj, NULL));
 }
 
-TEST_F(LibUAL, AppInfo)
+TEST_F(LibUAL, DISABLED_AppInfo)
 {
     g_setenv("TEST_CLICK_DB", "click-db-dir", TRUE);
     g_setenv("TEST_CLICK_USER", "test-user", TRUE);
