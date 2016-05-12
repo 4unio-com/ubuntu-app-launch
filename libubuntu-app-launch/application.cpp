@@ -20,6 +20,8 @@
 extern "C" {
 #include "app-info.h"
 #include "ubuntu-app-launch.h"
+
+#include <sys/apparmor.h>
 }
 
 #include "application-impl-click.h"
@@ -217,6 +219,26 @@ AppID AppID::discover(const std::string& package, const std::string& appname, Ve
     }
 
     return appid;
+}
+
+AppID AppID::fromPid(pid_t pid)
+{
+    gchar* clabel = nullptr;
+    gchar* cmode = nullptr;
+
+    if (aa_gettaskcon(pid, &clabel, &cmode) != 0)
+        return {};
+
+    if (clabel == nullptr)
+        return {};
+
+    std::string label(clabel);
+    free(clabel); /* No freeing of the mode per-apparmor docs */
+
+    if (label == "unconfined")
+        return {}; /* Wonder if we should try harder here? */
+
+    return find(label);
 }
 
 };  // namespace app_launch

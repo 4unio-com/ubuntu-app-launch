@@ -154,6 +154,15 @@ struct AppID
         \param version Version of the package
     */
     static AppID discover(const std::string& package, const std::string& appname, const std::string& version);
+
+    /** Looks at the AppArmor profile of a PID and determines the
+        AppID based on the AppArmor profile. This is useful for
+        trusted services that want to verify and untrusted connection's
+        owner is who they think it is.
+
+        \param pid PID to get an AppID for
+    */
+    static AppID fromPid(pid_t pid);
 };
 
 bool operator==(const AppID& a, const AppID& b);

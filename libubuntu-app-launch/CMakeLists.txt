@@ -90,6 +90,7 @@ target_link_libraries(ubuntu-launcher
 	${ZEITGEIST_LIBRARIES}
 	${MIR_LIBRARIES}
 	${LIBERTINE_LIBRARIES}
+	${APPARMOR_LIBRARIES}
 	helpers
 	-Wl,--no-undefined
 )
