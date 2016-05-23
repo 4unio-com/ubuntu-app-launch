@@ -71,6 +71,9 @@ public:
         return _ubuntuLifecycle;
     }
 
+	std::vector<Application::ActionKey> actions() override;
+	Application::Info::ActionName actionName (const Application::ActionKey &key) override;
+
 private:
     std::shared_ptr<GKeyFile> _keyfile;
     std::string _basePath;

@@ -50,6 +50,10 @@ public:
     struct URLTag;
     /** \private */
     typedef TypeTagger<URLTag, std::string> URL;
+    /** \private */
+    struct ActionKeyTag;
+    /** \private */
+    typedef TypeTagger<ActionKeyTag, std::string> ActionKey;
 
     /** Function to create an Application object. It determines the type of application
         and returns a pointer to that application object. It uses the registry for
@@ -176,6 +180,20 @@ public:
 
         /* Return whether the Ubuntu Lifecycle is supported by this application */
         virtual UbuntuLifecycle supportsUbuntuLifecycle() = 0;
+
+        /* Actions */
+        /** \private */
+        struct ActionNameTag;
+        /** \private */
+        typedef TypeTagger<ActionNameTag, std::string> ActionName;
+
+        /** Get the keys for the available actions that are associated
+            with this application. */
+        virtual std::vector<ActionKey> actions() = 0;
+        /** Get a user visible name for the action associated with the
+            @key. Will be localized. Throws an exception if the key is
+                not valid */
+        virtual ActionName actionName(const ActionKey& key) = 0;
     };
 
     /** Get a Application::Info object to describe the metadata for this
@@ -236,6 +254,12 @@ public:
         \param urls A list of URLs to pass to the application command line
     */
     virtual std::shared_ptr<Instance> launchTest(const std::vector<URL>& urls = {}) = 0;
+    /** Start an application with a specific action, optionally with URLs to pass to it.
+
+        \param action Action to use for getting the Exec line for the application
+        \param urls A list of URLs to pass to the application command line
+    */
+    virtual std::shared_ptr<Instance> launch(const ActionKey& action, const std::vector<URL>& urls = {}) = 0;
 };
 
 };  // namespace app_launch
