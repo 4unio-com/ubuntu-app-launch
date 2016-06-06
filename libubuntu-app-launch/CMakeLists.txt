@@ -13,6 +13,10 @@ set(ABI_VERSION 2)
 # Library
 ##########################
 
+add_compile_options(
+	-Wpedantic
+)
+
 add_lttng_gen_tp(NAME ubuntu-app-launch-trace)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden")

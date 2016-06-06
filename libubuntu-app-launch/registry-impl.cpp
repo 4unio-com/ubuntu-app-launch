@@ -510,5 +510,5 @@ Registry::Impl::clearManager ()
 }
 #endif
 
-};  // namespace app_launch
-};  // namespace ubuntu
+}  // namespace app_launch
+}  // namespace ubuntu
