@@ -168,6 +168,6 @@ std::shared_ptr<Application::Instance> Legacy::launchTest(const std::vector<Appl
                                    UpstartInstance::launchMode::TEST);
 }
 
-};  // namespace app_impls
-};  // namespace app_launch
-};  // namespace ubuntu
+}  // namespace app_impls
+}  // namespace app_launch
+}  // namespace ubuntu
