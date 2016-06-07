@@ -1,3 +1,15 @@
+ubuntu-app-launch (0.9+16.10.20160607.5-0ubuntu1) yakkety; urgency=medium
+
+  [ Ken VanDine ]
+  * Added dev depends on libproperties-cpp-dev
+
+  [ Ted Gould ]
+  * Add API to allow adjusting of the OOM score for an application
+    instance (LP: #1579799)
+  * Fix pedantic warnings
+
+ -- Ted Gould <ted@gould.cx>  Tue, 07 Jun 2016 18:10:01 +0000
+
 ubuntu-app-launch (0.9+16.04.20160510.2-0ubuntu1) xenial; urgency=medium
 
   * Allow invalid desktop files for OTA11 quick fix (LP: #1580092)
