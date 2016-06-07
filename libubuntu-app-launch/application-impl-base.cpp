@@ -24,6 +24,7 @@
 
 #include <upstart.h>
 
+#include "app-info.h"
 #include "application-impl-base.h"
 #include "registry-impl.h"
 
@@ -41,8 +42,7 @@ Base::Base(const std::shared_ptr<Registry>& registry)
 
 bool Base::hasInstances()
 {
-    std::string sappid = appId();
-    return ubuntu_app_launch_get_primary_pid(sappid.c_str()) != 0;
+    return !instances().empty();
 }
 
 bool UpstartInstance::isRunning()
@@ -61,6 +61,7 @@ pid_t UpstartInstance::primaryPid()
 
     return registry_->impl->thread.executeOnThread<pid_t>([this, &jobpath]() -> pid_t {
         GError* error = nullptr;
+        g_debug("Getting instance by name: %s", instance_.c_str());
         GVariant* vinstance_path =
             g_dbus_connection_call_sync(registry_->impl->_dbus.get(),                   /* connection */
                                         DBUS_SERVICE_UPSTART,                           /* service */
@@ -470,15 +471,10 @@ std::shared_ptr<UpstartInstance> UpstartInstance::launch(const AppID& appId,
                                                          launchMode mode)
 {
     auto urlstrv = urlsToStrv(urls);
-    auto start_result = registry->impl->thread.executeOnThread<gboolean>([&appId, &urlstrv, &mode]() {
-        if (mode == launchMode::STANDARD)
-        {
-            return ubuntu_app_launch_start_application(std::string(appId).c_str(), urlstrv.get());
-        }
-        else
-        {
-            return ubuntu_app_launch_start_application_test(std::string(appId).c_str(), urlstrv.get());
-        }
+    auto start_result = registry->impl->thread.executeOnThread<gboolean>([registry, &appId, &urlstrv, &mode]() {
+        return start_application_core(registry->impl->_dbus.get(), registry->impl->thread.getCancellable().get(),
+                                      std::string(appId).c_str(), urlstrv.get(),
+                                      mode == launchMode::STANDARD ? FALSE : TRUE);
     });
 
     if (start_result == FALSE)
