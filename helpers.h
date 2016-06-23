@@ -29,6 +29,7 @@ gchar *   manifest_to_desktop    (const gchar *   app_dir,
                                   const gchar *   app_id);
 gchar *   desktop_to_exec        (GKeyFile *      desktop_file,
                                   const gchar *   from);
+gboolean  is_terminal_app        (GKeyFile * desktop_file);
 GArray *  desktop_exec_parse     (const gchar *   execline,
                                   const gchar *   uri_list);
 GKeyFile * keyfile_for_appid     (const gchar *   appid,

@@ -201,6 +201,23 @@ TEST_F(ExecUtil, DesktopExec)
 	});
 }
 
+TEST_F(ExecUtil, DesktopTerminalExec)
+{
+	StartCheckEnv("terminal", {
+		{"APP_EXEC", [](const gchar * value) {
+			EXPECT_STREQ("acolyterm -c foo", value); }},
+		{"APP_DESKTOP_FILE_PATH", [](const gchar * value) {
+			EXPECT_STREQ(CMAKE_SOURCE_DIR "/applications/terminal.desktop", value); }},
+		{"APP_EXEC_POLICY", [](const gchar * value) {
+			EXPECT_STREQ("unconfined", value); }},
+		{"APP_ID", [](const gchar * value) {
+			EXPECT_STREQ("terminal", value); }},
+		{"INSTANCE_ID", nocheck},
+		{"APP_LAUNCHER_PID", [](const gchar * value) {
+			EXPECT_EQ(getpid(), atoi(value)); }},
+	});
+}
+
 TEST_F(ExecUtil, DesktopMir)
 {
 	StartCheckEnv("xmir", {
@@ -292,6 +309,23 @@ TEST_F(ExecUtil, LibertineExec)
 			EXPECT_STREQ("unconfined", value); }},
 		{"APP_ID", [](const gchar * value) {
 			EXPECT_STREQ("container-name_test_0.0", value); }},
+		{"APP_LAUNCHER_PID", [](const gchar * value) {
+			EXPECT_EQ(getpid(), atoi(value)); }},
+		{"INSTANCE_ID", nocheck},
+		{"APP_XMIR_ENABLE", [](const gchar * value) {
+			EXPECT_STREQ("1", value); }},
+	});
+}
+
+TEST_F(ExecUtil, LibertineTerminalExec)
+{
+	StartCheckEnv("container-name_terminal_0.0", {
+		{"APP_EXEC", [](const gchar * value) {
+			EXPECT_STREQ("acolyterm -c libertine-launch -- \"container-name\" test", value); }},
+		{"APP_EXEC_POLICY", [](const gchar * value) {
+			EXPECT_STREQ("unconfined", value); }},
+		{"APP_ID", [](const gchar * value) {
+			EXPECT_STREQ("container-name_terminal_0.0", value); }},
 		{"APP_LAUNCHER_PID", [](const gchar * value) {
 			EXPECT_EQ(getpid(), atoi(value)); }},
 		{"INSTANCE_ID", nocheck},

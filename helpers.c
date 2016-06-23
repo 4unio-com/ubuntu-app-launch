@@ -200,14 +200,6 @@ desktop_to_exec (GKeyFile * desktop_file, const gchar * from)
 		}
 	}
 
-	if (g_key_file_has_key(desktop_file, "Desktop Entry", "Terminal", NULL)) {
-		gboolean terminal = g_key_file_get_boolean(desktop_file, "Desktop Entry", "Terminal", NULL);
-		if (terminal) {
-			g_warning("Desktop file '%s' is set to run in a terminal, not copying", from);
-			return NULL;
-		}
-	}
-
 	if (!g_key_file_has_key(desktop_file, "Desktop Entry", "Exec", NULL)) {
 		g_warning("Desktop file '%s' has no 'Exec' key", from);
 		return NULL;
@@ -215,6 +207,13 @@ desktop_to_exec (GKeyFile * desktop_file, const gchar * from)
 
 	gchar * exec = g_key_file_get_string(desktop_file, "Desktop Entry", "Exec", NULL);
 	return exec;
+}
+
+gboolean
+is_terminal_app(GKeyFile * desktop_file)
+{
+	return g_key_file_has_key(desktop_file, "Desktop Entry", "Terminal", NULL) &&
+				 g_key_file_get_boolean(desktop_file, "Desktop Entry", "Terminal", NULL);
 }
 
 /* Convert a URI into a file */

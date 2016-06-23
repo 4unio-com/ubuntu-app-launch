@@ -203,6 +203,21 @@ desktop_task_setup (GDBusConnection * bus, const gchar * app_id, EnvHandle * han
 	}
 	g_free(libertinecontainer); /* Handles NULL, let's be sure it goes away */
 
+	if (is_terminal_app(keyfile)) {
+		gchar ** splitexec = g_strsplit(execline, " ", 2);
+		guint splits = g_strv_length(splitexec);
+		if (splits == 1) {
+			gchar * libexec = g_strdup_printf("acolyterm -c %s", splitexec[0]);
+			g_free(execline);
+			execline = libexec;
+		} else if (splits == 2) {
+			gchar * libexec = g_strdup_printf("acolyterm -c %s -- %s", splitexec[0], splitexec[1]);
+			g_free(execline);
+			execline = libexec;
+		}
+		g_strfreev(splitexec);
+	}
+
 	env_handle_add(handle, "APP_EXEC", execline);
 	g_free(execline);
 
