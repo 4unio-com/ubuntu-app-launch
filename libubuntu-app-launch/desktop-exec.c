@@ -172,13 +172,15 @@ desktop_task_setup (GDBusConnection * bus, const gchar * app_id, EnvHandle * han
 		env_handle_add(handle, "APP_EXEC_POLICY", "unconfined");
 	}
 
+	gboolean requires_terminal = is_terminal_app(keyfile);
+
 	if (g_key_file_has_key(keyfile, "Desktop Entry", "X-Ubuntu-XMir-Enable", NULL)) {
 		if (g_key_file_get_boolean(keyfile, "Desktop Entry", "X-Ubuntu-XMir-Enable", NULL)) {
 			env_handle_add(handle, "APP_XMIR_ENABLE", "1");
 		} else {
 			env_handle_add(handle, "APP_XMIR_ENABLE", "0");
 		}
-	} else if (is_libertine) {
+	} else if (is_libertine && !requires_terminal) {
 		/* Default to X for libertine stuff */
 		env_handle_add(handle, "APP_XMIR_ENABLE", "1");
 	}
@@ -203,8 +205,7 @@ desktop_task_setup (GDBusConnection * bus, const gchar * app_id, EnvHandle * han
 	}
 	g_free(libertinecontainer); /* Handles NULL, let's be sure it goes away */
 
-	if (is_terminal_app(keyfile)) {
-		g_warning("Desktop file contains terminal app!", from);
+	if (requires_terminal) {
 		gchar ** splitexec = g_strsplit(execline, " ", 2);
 		guint splits = g_strv_length(splitexec);
 		if (splits == 1) {
