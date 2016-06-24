@@ -31,6 +31,7 @@
 int
 main (int argc, char * argv[])
 {
+	g_warning("Let's start this show!");
 	/* Make sure we have work to do */
 	/* This string is quoted using desktop file quoting:
 	   http://standards.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html#exec-variables */
@@ -44,6 +45,7 @@ main (int argc, char * argv[])
 
 	/* For the tracepoints */
 	const gchar * app_id = g_getenv("APP_ID");
+	g_warning("Looking for app: %s", app_id);
 
 	ual_tracepoint(exec_start, app_id);
 
@@ -138,6 +140,9 @@ main (int argc, char * argv[])
 		g_warning("Unable to parse exec line '%s'", app_exec);
 		return 1;
 	}
+	g_warning("IS MIR_APP? %s", g_getenv("APP_XMIR_ENABLE"));
+	g_warning("IS TERM_APP? %s", g_getenv("APP_TERM_ENABLE"));
+	g_warning("DISPLAY? %s", g_getenv("DISPLAY"));
 
 	ual_tracepoint(exec_parse_complete, app_id);
 

@@ -204,6 +204,7 @@ desktop_task_setup (GDBusConnection * bus, const gchar * app_id, EnvHandle * han
 	g_free(libertinecontainer); /* Handles NULL, let's be sure it goes away */
 
 	if (is_terminal_app(keyfile)) {
+		g_warning("Desktop file contains terminal app!", from);
 		gchar ** splitexec = g_strsplit(execline, " ", 2);
 		guint splits = g_strv_length(splitexec);
 		if (splits == 1) {
