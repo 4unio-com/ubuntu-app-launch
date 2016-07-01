@@ -58,6 +58,17 @@ Application::Info::IconPath IconFinder::find(const std::string& iconName)
 {
     if (iconName[0] == '/')  // explicit icon path received
     {
+        if (iconName.find(_basePath) == std::string::npos)
+        {
+            auto pathWithBase = g_build_filename(_basePath.c_str(), iconName.c_str(), nullptr);
+            std::string strPathWithBase(pathWithBase);
+            g_free(pathWithBase);
+
+            if (g_file_test(strPathWithBase.c_str(), G_FILE_TEST_EXISTS))
+            {
+                return Application::Info::IconPath::from_raw(strPathWithBase);
+            }
+        }
         return Application::Info::IconPath::from_raw(iconName);
     }
 
