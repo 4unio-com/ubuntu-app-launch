@@ -48,12 +48,13 @@ static const std::regex iconSizeDirname = std::regex("^(\\d+)x\\1$");
 
 static std::string tryMergeFilePaths(const std::string& parent, const std::string& child)
 {
-    auto slashPos = parent.find_first_of('/');
+    auto slashPos = parent.find_last_of('/');
+    auto prevSlashPos = std::string::npos;
     while (slashPos != std::string::npos)
     {
-        if (child.find(parent.substr(slashPos)) != std::string::npos)
+        if (child.find(parent.substr(slashPos)) == std::string::npos && prevSlashPos != std::string::npos)
         {
-            auto pathWithBase = g_build_filename(parent.substr(0, slashPos).c_str(), child.c_str(), nullptr);
+            auto pathWithBase = g_build_filename(parent.substr(0, prevSlashPos).c_str(), child.c_str(), nullptr);
 
             std::string strPathWithBase(pathWithBase);
             g_free(pathWithBase);
@@ -64,7 +65,8 @@ static std::string tryMergeFilePaths(const std::string& parent, const std::strin
             }
             break;
         }
-        slashPos = parent.find_first_of('/', slashPos + 1);
+        prevSlashPos = slashPos;
+        slashPos = parent.find_last_of('/', slashPos - 1);
     }
     return child;
 }
