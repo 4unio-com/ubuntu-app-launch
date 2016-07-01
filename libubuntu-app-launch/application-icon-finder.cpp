@@ -45,6 +45,58 @@ constexpr auto PIXMAPS_PATH = "/pixmaps/";
 constexpr auto ICON_TYPES = {".png", ".svg", ".xpm"};
 
 static const std::regex iconSizeDirname = std::regex("^(\\d+)x\\1$");
+
+static std::string tryMergeFilePaths(const std::string& parent, const std::string& child)
+{
+    auto slashPos = parent.find_first_of('/');
+    while (slashPos != std::string::npos)
+    {
+        if (child.find(parent.substr(slashPos)) != std::string::npos)
+        {
+            auto pathWithBase = g_build_filename(parent.substr(0, slashPos).c_str(), child.c_str(), nullptr);
+
+            std::string strPathWithBase(pathWithBase);
+            g_free(pathWithBase);
+
+            if (g_file_test(strPathWithBase.c_str(), G_FILE_TEST_EXISTS))
+            {
+                return strPathWithBase;
+            }
+            break;
+        }
+        slashPos = parent.find_first_of('/', slashPos + 1);
+    }
+    return child;
+}
+
+static std::string tryFindExplicitFile(const std::string& basePath, const std::string& iconName)
+{
+    if (g_file_test(iconName.c_str(), G_FILE_TEST_EXISTS))
+    {
+        return iconName;
+    }
+    else
+    {
+        auto pathWithBase = g_build_filename(basePath.c_str(), iconName.c_str(), nullptr);
+
+        std::string strPathWithBase(pathWithBase);
+        g_free(pathWithBase);
+
+        if (g_file_test(strPathWithBase.c_str(), G_FILE_TEST_EXISTS))
+        {
+            return strPathWithBase;
+        }
+        else
+        {
+            auto mergedIconName = tryMergeFilePaths(basePath, iconName);
+            if (mergedIconName != iconName)
+            {
+                return mergedIconName;
+            }
+        }
+    }
+    return "";
+}
 }  // anonymous namespace
 
 IconFinder::IconFinder(std::string basePath)
@@ -58,18 +110,11 @@ Application::Info::IconPath IconFinder::find(const std::string& iconName)
 {
     if (iconName[0] == '/')  // explicit icon path received
     {
-        if (iconName.find(_basePath) == std::string::npos)
+        auto explicitIconPath = tryFindExplicitFile(_basePath, iconName);
+        if (!explicitIconPath.empty())
         {
-            auto pathWithBase = g_build_filename(_basePath.c_str(), iconName.c_str(), nullptr);
-            std::string strPathWithBase(pathWithBase);
-            g_free(pathWithBase);
-
-            if (g_file_test(strPathWithBase.c_str(), G_FILE_TEST_EXISTS))
-            {
-                return Application::Info::IconPath::from_raw(strPathWithBase);
-            }
+            return Application::Info::IconPath::from_raw(explicitIconPath);
         }
-        return Application::Info::IconPath::from_raw(iconName);
     }
 
     /* Look in each directory slowly decreasing the size until we find
