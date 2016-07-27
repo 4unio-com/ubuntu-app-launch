@@ -1,3 +1,13 @@
+ubuntu-app-launch (0.9+16.10.20160727-0ubuntu1) yakkety; urgency=medium
+
+  [ Ken VanDine ]
+  * Added dev depends on libproperties-cpp-dev
+
+  [ Ted Gould ]
+  * Pedantic fixes for header files
+
+ -- Ken VanDine <ken.vandine@canonical.com>  Wed, 27 Jul 2016 14:13:22 +0000
+
 ubuntu-app-launch (0.9+16.04.20160510.2-0ubuntu1) xenial; urgency=medium
 
   * Allow invalid desktop files for OTA11 quick fix (LP: #1580092)
