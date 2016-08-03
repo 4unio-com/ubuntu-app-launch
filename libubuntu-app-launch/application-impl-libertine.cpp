@@ -19,7 +19,11 @@
 
 #include "application-impl-libertine.h"
 #include "application-info-desktop.h"
-#include "libertine.h"
+extern "C"
+{
+#include "app-info.h"
+}
+#include <libertine.h>
 
 namespace ubuntu
 {
@@ -28,58 +32,8 @@ namespace app_launch
 namespace app_impls
 {
 
-std::shared_ptr<GKeyFile> keyfileFromPath(const gchar* pathname);
-
-Libertine::Libertine(const AppID::Package& container,
-                     const AppID::AppName& appname,
-                     const std::shared_ptr<Registry>& registry)
-    : Base(registry)
-    , _container(container)
-    , _appname(appname)
+namespace
 {
-    if (!_keyfile)
-    {
-        auto container_path = libertine_container_path(container.value().c_str());
-        auto container_app_path = g_build_filename(container_path, "usr", "share", "applications",
-                                                   (appname.value() + ".desktop").c_str(), nullptr);
-
-        _keyfile = keyfileFromPath(container_app_path);
-
-        if (_keyfile)
-        {
-            auto gbasedir = g_build_filename(container_path, "usr", "share", nullptr);
-            _basedir = gbasedir;
-            g_free(gbasedir);
-        }
-
-        g_free(container_app_path);
-        g_free(container_path);
-    }
-
-    if (!_keyfile)
-    {
-        auto home_path = libertine_container_home_path(container.value().c_str());
-        auto home_app_path = g_build_filename(home_path, ".local", "share", "applications",
-                                              (appname.value() + ".desktop").c_str(), NULL);
-
-        _keyfile = keyfileFromPath(home_app_path);
-
-        if (_keyfile)
-        {
-            auto gbasedir = g_build_filename(home_path, ".local", "share", nullptr);
-            _basedir = gbasedir;
-            g_free(gbasedir);
-        }
-
-        g_free(home_app_path);
-        g_free(home_path);
-    }
-
-    if (!_keyfile)
-        throw std::runtime_error{"Unable to find a keyfile for application '" + appname.value() + "' in container '" +
-                                 container.value() + "'"};
-}
-
 std::shared_ptr<GKeyFile> keyfileFromPath(const gchar* pathname)
 {
     if (!g_file_test(pathname, G_FILE_TEST_EXISTS))
@@ -104,6 +58,36 @@ std::shared_ptr<GKeyFile> keyfileFromPath(const gchar* pathname)
     }
 
     return keyfile;
+}
+}
+
+Libertine::Libertine(const AppID::Package& container,
+                     const AppID::AppName& appname,
+                     const std::shared_ptr<Registry>& registry)
+    : Base(registry)
+    , _container(container)
+    , _appname(appname)
+{
+    gchar* basedir = NULL;
+    gchar* keyfile = NULL;
+    if (!app_info_libertine(ubuntu_app_launch_triplet_to_app_id(container.value().c_str(), appname.value().c_str(), "0.0"), &basedir, &keyfile))
+    {
+      throw std::runtime_error{"Unable to find a keyfile for application '" + appname.value() + "' in container '" +
+                               container.value() + "'"};
+    }
+    _basedir = basedir;
+    gchar* full_filename = g_build_filename(basedir, keyfile, nullptr);
+    _keyfile = keyfileFromPath(full_filename);
+
+    g_free(full_filename);
+    g_free(keyfile);
+    g_free(basedir);
+
+    if (!_keyfile)
+    {
+        throw std::runtime_error{"Unable to find a keyfile for application '" + appname.value() + "' in container '" +
+                                 container.value() + "'"};
+    }
 }
 
 std::list<std::shared_ptr<Application>> Libertine::list(const std::shared_ptr<Registry>& registry)

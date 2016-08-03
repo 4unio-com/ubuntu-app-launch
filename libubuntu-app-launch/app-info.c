@@ -231,7 +231,7 @@ find_desktop_file (const gchar * base_path, const gchar * rel_path, const gchar 
     gchar* file = g_build_filename(full_path, files, NULL);
     if (g_file_test(file, G_FILE_TEST_IS_DIR))
     {
-      gchar* file_rel_path = g_build_filename(rel_path, file, NULL);
+      gchar* file_rel_path = g_build_filename(rel_path, files, NULL);
       if (find_desktop_file(base_path, file_rel_path, desktop_file, appdesktop))
       {
         g_free(file_rel_path);
@@ -297,12 +297,12 @@ app_info_libertine (const gchar * appid, gchar ** appdir, gchar ** appdesktop)
 	}
 
 	gchar * desktopname = g_strdup_printf("%s.desktop", app);
+  g_free(app);
 
   gchar * system_dir = g_build_filename(g_get_user_cache_dir(), "libertine-container", container, "rootfs", "usr", "share", NULL);
   if (find_app_info(system_dir, desktopname, appdir, appdesktop)) {
     g_free(system_dir);
     g_free(desktopname);
-    g_free(app);
     g_free(container);
     return TRUE;
   }
@@ -312,13 +312,11 @@ app_info_libertine (const gchar * appid, gchar ** appdir, gchar ** appdesktop)
   if (find_app_info(user_dir, desktopname, appdir, appdesktop)) {
     g_free(user_dir);
     g_free(desktopname);
-    g_free(app);
     g_free(container);
     return TRUE;
   }
   g_free(user_dir);
   g_free(desktopname);
-  g_free(app);
   g_free(container);
 
   return FALSE;
