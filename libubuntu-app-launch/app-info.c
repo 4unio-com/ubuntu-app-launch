@@ -200,27 +200,67 @@ libertine_triplet_to_app_id (const gchar * pkg, const gchar * app, const gchar *
 	}
 }
 
-/* Look to see if the app id results in a desktop file, if so, fill in the params */
 static gboolean
-evaluate_dir (const gchar * dir, const gchar * desktop, gchar ** appdir, gchar ** appdesktop)
+find_desktop_file (const gchar * base_path, const gchar * rel_path, const gchar * desktop_file, gchar ** appdesktop)
 {
-	char * fulldir = g_build_filename(dir, "applications", desktop, NULL);
-	gboolean found = FALSE;
+  gchar* full_path = g_build_filename(base_path, rel_path, NULL);
+  gchar* full_filename = g_build_filename(full_path, desktop_file, NULL);
 
-	if (g_file_test(fulldir, G_FILE_TEST_EXISTS)) {
-		if (appdir != NULL) {
-			*appdir = g_strdup(dir);
-		}
+  if (g_file_test(full_filename, G_FILE_TEST_IS_REGULAR)) {
+    if (appdesktop != NULL) {
+      *appdesktop = g_build_filename(rel_path, desktop_file, NULL);
+    }
 
-		if (appdesktop != NULL) {
-			*appdesktop = g_strdup_printf("applications/%s", desktop);
-		}
+    g_free(full_filename);
+    g_free(full_path);
+    return TRUE;
+  }
+  g_free(full_filename);
 
-		found = TRUE;
-	}
+  GError* error = NULL;
+  GDir* dir = g_dir_open(full_path, 0, &error);
+  if (error != NULL) {
+    g_error_free(error);
+    g_free(full_path);
+    return FALSE;
+  }
 
-	g_free(fulldir);
-	return found;
+  const gchar* files;
+  while ((files = g_dir_read_name(dir)) != NULL)
+  {
+    gchar* file = g_build_filename(full_path, files, NULL);
+    if (g_file_test(file, G_FILE_TEST_IS_DIR))
+    {
+      gchar* file_rel_path = g_build_filename(rel_path, file, NULL);
+      if (find_desktop_file(base_path, file_rel_path, desktop_file, appdesktop))
+      {
+        g_free(file_rel_path);
+        g_free(file);
+        g_free(dir);
+        g_free(full_path);
+        return TRUE;
+      }
+      g_free(file_rel_path);
+    }
+    g_free(file);
+  }
+
+  g_free(dir);
+  g_free(full_path);
+
+  return FALSE;
+}
+
+gboolean
+find_app_info (const gchar * base_path, const gchar * desktop_file, gchar ** appdir, gchar ** appdesktop)
+{
+  if (find_desktop_file(base_path, "applications", desktop_file, appdesktop)) {
+    if (appdir != NULL) {
+      *appdir = g_strdup(base_path);
+    }
+    return TRUE;
+  }
+  return FALSE;
 }
 
 /* Handle the legacy case where we look through the data directories */
@@ -228,22 +268,20 @@ gboolean
 app_info_legacy (const gchar * appid, gchar ** appdir, gchar ** appdesktop)
 {
 	gchar * desktop = g_strdup_printf("%s.desktop", appid);
+  if (find_app_info(g_get_user_data_dir(), desktop, appdir, appdesktop)) {
+    g_free(desktop);
+    return TRUE;
+  }
 
-	/* Special case the user's dir */
-	if (evaluate_dir(g_get_user_data_dir(), desktop, appdir, appdesktop)) {
-		g_free(desktop);
-		return TRUE;
-	}
-
-	const char * const * data_dirs = g_get_system_data_dirs();
-	int i;
-	for (i = 0; data_dirs[i] != NULL; i++) {
-		if (evaluate_dir(data_dirs[i], desktop, appdir, appdesktop)) {
-			g_free(desktop);
+  const char * const * data_dirs = g_get_system_data_dirs();
+  for (int i = 0; data_dirs[i] != NULL; i++) {
+    if (find_app_info(data_dirs[i], desktop, appdir, appdesktop)) {
+      g_free(desktop);
 			return TRUE;
-		}
+    }
 	}
 
+  g_free(desktop);
 	return FALSE;
 }
 
@@ -260,44 +298,30 @@ app_info_libertine (const gchar * appid, gchar ** appdir, gchar ** appdesktop)
 
 	gchar * desktopname = g_strdup_printf("%s.desktop", app);
 
-	gchar * desktopdir = g_build_filename(g_get_user_cache_dir(), "libertine-container", container, "rootfs", "usr", "share", NULL);
-	gchar * desktopfile = g_build_filename(desktopdir, "applications", desktopname, NULL);
+  gchar * system_dir = g_build_filename(g_get_user_cache_dir(), "libertine-container", container, "rootfs", "usr", "share", NULL);
+  if (find_app_info(system_dir, desktopname, appdir, appdesktop)) {
+    g_free(system_dir);
+    g_free(desktopname);
+    g_free(app);
+    g_free(container);
+    return TRUE;
+  }
+  g_free(system_dir);
 
-	if (!g_file_test(desktopfile, G_FILE_TEST_EXISTS)) {
-		g_free(desktopdir);
-		g_free(desktopfile);
+  gchar * user_dir = g_build_filename(g_get_user_data_dir(), "libertine-container", "user-data", container, ".local", "share", NULL);
+  if (find_app_info(user_dir, desktopname, appdir, appdesktop)) {
+    g_free(user_dir);
+    g_free(desktopname);
+    g_free(app);
+    g_free(container);
+    return TRUE;
+  }
+  g_free(user_dir);
+  g_free(desktopname);
+  g_free(app);
+  g_free(container);
 
-		desktopdir = g_build_filename(g_get_user_data_dir(), "libertine-container", "user-data", container, ".local", "share", NULL);
-		desktopfile = g_build_filename(desktopdir, "applications", desktopname, NULL);
-
-		if (!g_file_test(desktopfile, G_FILE_TEST_EXISTS)) {
-			g_free(desktopdir);
-			g_free(desktopfile);
-
-			g_free(desktopname);
-			g_free(container);
-			g_free(app);
-
-			return FALSE;
-		}
-	}
-
-	if (appdir != NULL) {
-		*appdir = desktopdir;
-	} else {
-		g_free(desktopdir);
-	}
-
-	if (appdesktop != NULL) {
-		*appdesktop = g_build_filename("applications", desktopname, NULL);
-	}
-
-	g_free(desktopfile);
-	g_free(desktopname);
-	g_free(container);
-	g_free(app);
-
-	return TRUE;
+  return FALSE;
 }
 
 /* Get the information on where the desktop file is from libclick */
