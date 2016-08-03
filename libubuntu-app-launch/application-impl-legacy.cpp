@@ -19,6 +19,10 @@
 
 #include "application-impl-legacy.h"
 #include "application-info-desktop.h"
+extern "C"
+{
+#include "app-info.h"
+}
 
 namespace ubuntu
 {
@@ -26,78 +30,58 @@ namespace app_launch
 {
 namespace app_impls
 {
-
-std::pair<std::string, std::shared_ptr<GKeyFile>> keyfileForApp(const AppID::AppName& name);
-
-void clear_keyfile(GKeyFile* keyfile)
+namespace
 {
-    if (keyfile != nullptr)
+std::shared_ptr<GKeyFile> keyfileFromPath(const gchar* pathname)
+{
+    if (!g_file_test(pathname, G_FILE_TEST_EXISTS))
     {
-        g_key_file_free(keyfile);
+        return {};
     }
-}
 
-Legacy::Legacy(const AppID::AppName& appname,
-               const std::string& basedir,
-               const std::shared_ptr<GKeyFile>& keyfile,
-               const std::shared_ptr<Registry>& registry)
-    : Base(registry)
-    , _appname(appname)
-    , _basedir(basedir)
-    , _keyfile(keyfile)
-{
-    if (!_keyfile)
-        throw std::runtime_error{"Unable to find keyfile for legacy application: " + appname.value()};
+    std::shared_ptr<GKeyFile> keyfile(g_key_file_new(), [](GKeyFile* keyfile) {
+        if (keyfile != nullptr)
+        {
+            g_key_file_free(keyfile);
+        }
+    });
+    GError* error = nullptr;
+
+    g_key_file_load_from_file(keyfile.get(), pathname, G_KEY_FILE_NONE, &error);
+
+    if (error != nullptr)
+    {
+        g_error_free(error);
+        return {};
+    }
+
+    return keyfile;
+}
 }
 
 Legacy::Legacy(const AppID::AppName& appname, const std::shared_ptr<Registry>& registry)
     : Base(registry)
     , _appname(appname)
 {
-    std::tie(_basedir, _keyfile) = keyfileForApp(appname);
-
-    if (!_keyfile)
-        throw std::runtime_error{"Unable to find keyfile for legacy application: " + appname.value()};
-}
-
-std::pair<std::string, std::shared_ptr<GKeyFile>> keyfileForApp(const AppID::AppName& name)
-{
-    std::string desktopName = name.value() + ".desktop";
-    auto keyfilecheck = [desktopName](const std::string& dir) -> std::shared_ptr<GKeyFile> {
-        auto fullname = g_build_filename(dir.c_str(), "applications", desktopName.c_str(), nullptr);
-        if (!g_file_test(fullname, G_FILE_TEST_EXISTS))
-        {
-            g_free(fullname);
-            return {};
-        }
-
-        auto keyfile = std::shared_ptr<GKeyFile>(g_key_file_new(), clear_keyfile);
-
-        GError* error = nullptr;
-        g_key_file_load_from_file(keyfile.get(), fullname, G_KEY_FILE_NONE, &error);
-        g_free(fullname);
-
-        if (error != nullptr)
-        {
-            g_debug("Unable to load keyfile '%s' becuase: %s", desktopName.c_str(), error->message);
-            g_error_free(error);
-            return {};
-        }
-
-        return keyfile;
-    };
-
-    std::string basedir = g_get_user_data_dir();
-    auto retval = keyfilecheck(basedir);
-
-    auto systemDirs = g_get_system_data_dirs();
-    for (auto i = 0; !retval && systemDirs[i] != nullptr; i++)
+    gchar* basedir = NULL;
+    gchar* keyfile = NULL;
+    if (!app_info_legacy(appname.value().c_str(), &basedir, &keyfile))
     {
-        basedir = systemDirs[i];
-        retval = keyfilecheck(basedir);
+        throw std::runtime_error{"Unable to find keyfile for legacy application: " + appname.value()};
     }
 
-    return std::make_pair(basedir, retval);
+    _basedir = basedir;
+    gchar* full_filename = g_build_filename(basedir, keyfile, nullptr);
+    _keyfile = keyfileFromPath(full_filename);
+
+    g_free(full_filename);
+    g_free(keyfile);
+    g_free(basedir);
+
+    if (!_keyfile)
+    {
+        throw std::runtime_error{"Unable to find keyfile for legacy application: " + appname.value()};
+    }
 }
 
 std::shared_ptr<Application::Info> Legacy::info()
