@@ -45,6 +45,8 @@ public:
 
 protected:
     std::shared_ptr<Registry> _registry;
+
+    static std::shared_ptr<GKeyFile> keyfileFromPath(const gchar* pathname);
 };
 
 };  // namespace app_impls

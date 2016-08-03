@@ -157,6 +157,32 @@ std::shared_ptr<Application::Instance> Base::launchTest(const std::vector<Applic
     return std::make_shared<BaseInstance>(appIdStr);
 }
 
+std::shared_ptr<GKeyFile> Base::keyfileFromPath(const gchar* pathname)
+{
+    if (!g_file_test(pathname, G_FILE_TEST_EXISTS))
+    {
+        return {};
+    }
+
+    std::shared_ptr<GKeyFile> keyfile(g_key_file_new(), [](GKeyFile* keyfile) {
+        if (keyfile != nullptr)
+        {
+            g_key_file_free(keyfile);
+        }
+    });
+    GError* error = nullptr;
+
+    g_key_file_load_from_file(keyfile.get(), pathname, G_KEY_FILE_NONE, &error);
+
+    if (error != nullptr)
+    {
+        g_error_free(error);
+        return {};
+    }
+
+    return keyfile;
+}
+
 };  // namespace app_impls
 };  // namespace app_launch
 };  // namespace ubuntu
