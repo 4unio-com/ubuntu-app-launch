@@ -1667,4 +1667,11 @@ TEST_F(LibUAL, AppInfo)
 	EXPECT_STREQ("applications/test.desktop", file);
 	g_clear_pointer(&dir, g_free);
 	g_clear_pointer(&file, g_free);
+
+  /* Correct values for nested libertine */
+  EXPECT_TRUE(ubuntu_app_launch_application_info("container-name_test-nested_0.0", &dir, &file));
+  EXPECT_STREQ(CMAKE_SOURCE_DIR "/libertine-data/libertine-container/container-name/rootfs/usr/share", dir);
+  EXPECT_STREQ("applications/nested/test-nested.desktop", file);
+  g_clear_pointer(&dir, g_free);
+  g_clear_pointer(&file, g_free);
 }
