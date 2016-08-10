@@ -23,66 +23,48 @@
 
 #pragma once
 
-namespace ubuntu
-{
-namespace app_launch
-{
-namespace app_info
-{
+namespace ubuntu {
+namespace app_launch {
+namespace app_info {
 
-class Desktop : public Application::Info
-{
-public:
-    Desktop(std::shared_ptr<GKeyFile> keyfile,
-            const std::string& basePath,
-            std::shared_ptr<Registry> registry = nullptr,
-            bool allowNoDisplay = false);
+class Desktop : public Application::Info {
+ public:
+  Desktop(std::shared_ptr<GKeyFile> keyfile, const std::string& basePath,
+          std::shared_ptr<Registry> registry = nullptr,
+          bool allowNoDisplay = false);
 
-    const Application::Info::Name& name() override
-    {
-        return _name;
-    }
-    const Application::Info::Description& description() override
-    {
-        return _description;
-    }
-    const Application::Info::IconPath& iconPath() override
-    {
-        return _iconPath;
-    }
+  const Application::Info::Name& name() override { return _name; }
+  const Application::Info::Description& description() override {
+    return _description;
+  }
+  const Application::Info::IconPath& iconPath() override { return _iconPath; }
 
-    Application::Info::Splash splash() override
-    {
-        return _splashInfo;
-    }
+  Application::Info::Splash splash() override { return _splashInfo; }
 
-    Application::Info::Orientations supportedOrientations() override
-    {
-        return _supportedOrientations;
-    }
+  Application::Info::Orientations supportedOrientations() override {
+    return _supportedOrientations;
+  }
 
-    Application::Info::RotatesWindow rotatesWindowContents() override
-    {
-        return _rotatesWindow;
-    }
+  Application::Info::RotatesWindow rotatesWindowContents() override {
+    return _rotatesWindow;
+  }
 
-    Application::Info::UbuntuLifecycle supportsUbuntuLifecycle() override
-    {
-        return _ubuntuLifecycle;
-    }
+  Application::Info::UbuntuLifecycle supportsUbuntuLifecycle() override {
+    return _ubuntuLifecycle;
+  }
 
-private:
-    std::shared_ptr<GKeyFile> _keyfile;
-    std::string _basePath;
+ private:
+  std::shared_ptr<GKeyFile> _keyfile;
+  std::string _basePath;
 
-    Application::Info::Name _name;
-    Application::Info::Description _description;
-    Application::Info::IconPath _iconPath;
+  Application::Info::Name _name;
+  Application::Info::Description _description;
+  Application::Info::IconPath _iconPath;
 
-    Application::Info::Splash _splashInfo;
-    Application::Info::Orientations _supportedOrientations;
-    Application::Info::RotatesWindow _rotatesWindow;
-    Application::Info::UbuntuLifecycle _ubuntuLifecycle;
+  Application::Info::Splash _splashInfo;
+  Application::Info::Orientations _supportedOrientations;
+  Application::Info::RotatesWindow _rotatesWindow;
+  Application::Info::UbuntuLifecycle _ubuntuLifecycle;
 };
 
 }  // namespace AppInfo

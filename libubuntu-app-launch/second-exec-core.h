@@ -20,5 +20,4 @@
 
 #include <glib.h>
 
-gboolean second_exec (const gchar * app_id, const gchar * appuris);
-
+gboolean second_exec(const gchar* app_id, const gchar* appuris);

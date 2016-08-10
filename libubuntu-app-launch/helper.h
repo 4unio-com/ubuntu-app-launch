@@ -28,10 +28,8 @@
 #pragma once
 #pragma GCC visibility push(default)
 
-namespace ubuntu
-{
-namespace app_launch
-{
+namespace ubuntu {
+namespace app_launch {
 
 class Registry;
 
@@ -60,60 +58,61 @@ class Registry;
     about AppArmor, cgroups, or jobs) but it doesn't not implement them
     by itself.
 */
-class Helper
-{
-public:
-    /** \private */
-    struct TypeTag;
-    /** \private */
-    struct URLTag;
+class Helper {
+ public:
+  /** \private */
+  struct TypeTag;
+  /** \private */
+  struct URLTag;
 
-    /** \private */
-    typedef TypeTagger<TypeTag, std::string> Type;
-    /** \private */
-    typedef TypeTagger<URLTag, std::string> URL;
+  /** \private */
+  typedef TypeTagger<TypeTag, std::string> Type;
+  /** \private */
+  typedef TypeTagger<URLTag, std::string> URL;
 
-    /** Create a new helper object from an AppID
+  /** Create a new helper object from an AppID
 
-        \param type Type of untrusted helper
-        \param appid AppID of the helper
-        \param registry Shared registry instance
-    */
-    static std::shared_ptr<Helper> create(Type type, AppID appid, std::shared_ptr<Registry> registry);
+      \param type Type of untrusted helper
+      \param appid AppID of the helper
+      \param registry Shared registry instance
+  */
+  static std::shared_ptr<Helper> create(Type type, AppID appid,
+                                        std::shared_ptr<Registry> registry);
 
-    /** Get the AppID for this helper */
-    virtual AppID appId() = 0;
+  /** Get the AppID for this helper */
+  virtual AppID appId() = 0;
 
-    /** Running instance of a a Helper */
-    class Instance
-    {
-    public:
-        /** Check to see if this instance is running */
-        virtual bool isRunning() = 0;
+  /** Running instance of a a Helper */
+  class Instance {
+   public:
+    /** Check to see if this instance is running */
+    virtual bool isRunning() = 0;
 
-        /** Stop a running helper */
-        virtual void stop() = 0;
-    };
+    /** Stop a running helper */
+    virtual void stop() = 0;
+  };
 
-    /** Check to see if there are any instances of this untrusted helper */
-    virtual bool hasInstances() = 0;
-    /** Get the list of instances of this helper */
-    virtual std::vector<std::shared_ptr<Instance>> instances() = 0;
+  /** Check to see if there are any instances of this untrusted helper */
+  virtual bool hasInstances() = 0;
+  /** Get the list of instances of this helper */
+  virtual std::vector<std::shared_ptr<Instance>> instances() = 0;
 
-    /** Launch an instance of a helper with an optional set of URLs
-        that get passed to the helper.
+  /** Launch an instance of a helper with an optional set of URLs
+      that get passed to the helper.
 
-        \param urls List of URLs to passed to the untrusted helper
-    */
-    virtual std::shared_ptr<Instance> launch(std::vector<URL> urls = {}) = 0;
-    /** Launch an instance of a helper that is run in a Mir Trusted
-        Prompt session. The session should be created by the trusted
-        helper using the Mir function ``mir_connection_create_prompt_session_sync()``.
+      \param urls List of URLs to passed to the untrusted helper
+  */
+  virtual std::shared_ptr<Instance> launch(std::vector<URL> urls = {}) = 0;
+  /** Launch an instance of a helper that is run in a Mir Trusted
+      Prompt session. The session should be created by the trusted
+      helper using the Mir function
+     ``mir_connection_create_prompt_session_sync()``.
 
-        \param session Mir trusted prompt session
-        \param urls List of URLs to passed to the untrusted helper
-    */
-    virtual std::shared_ptr<Instance> launch(MirPromptSession* session, std::vector<URL> urls = {}) = 0;
+      \param session Mir trusted prompt session
+      \param urls List of URLs to passed to the untrusted helper
+  */
+  virtual std::shared_ptr<Instance> launch(MirPromptSession* session,
+                                           std::vector<URL> urls = {}) = 0;
 };
 
 }  // namespace app_launch

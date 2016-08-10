@@ -26,10 +26,8 @@
 
 #pragma once
 
-namespace ubuntu
-{
-namespace app_launch
-{
+namespace ubuntu {
+namespace app_launch {
 
 class IconFinder;
 
@@ -37,42 +35,38 @@ class IconFinder;
     \brief Private implementation of the Registry object
 
 */
-class Registry::Impl
-{
-public:
-    Impl(Registry* registry);
-    virtual ~Impl()
-    {
-        thread.quit();
-    }
+class Registry::Impl {
+ public:
+  Impl(Registry* registry);
+  virtual ~Impl() { thread.quit(); }
 
-    std::shared_ptr<JsonObject> getClickManifest(const std::string& package);
-    std::list<AppID::Package> getClickPackages();
-    std::string getClickDir(const std::string& package);
+  std::shared_ptr<JsonObject> getClickManifest(const std::string& package);
+  std::list<AppID::Package> getClickPackages();
+  std::string getClickDir(const std::string& package);
 
 #if 0
     void setManager (Registry::Manager* manager);
     void clearManager ();
 #endif
 
-    GLib::ContextThread thread;
+  GLib::ContextThread thread;
 
-    std::shared_ptr<IconFinder> getIconFinder(std::string basePath);
+  std::shared_ptr<IconFinder> getIconFinder(std::string basePath);
 
-private:
-    Registry* _registry;
+ private:
+  Registry* _registry;
 #if 0
     Registry::Manager* _manager;
 #endif
 
-    std::shared_ptr<ClickDB> _clickDB;
-    std::shared_ptr<ClickUser> _clickUser;
+  std::shared_ptr<ClickDB> _clickDB;
+  std::shared_ptr<ClickUser> _clickUser;
 
-    std::shared_ptr<GDBusConnection> _dbus;
+  std::shared_ptr<GDBusConnection> _dbus;
 
-    void initClick();
+  void initClick();
 
-    std::unordered_map<std::string, std::shared_ptr<IconFinder>> _iconFinders;
+  std::unordered_map<std::string, std::shared_ptr<IconFinder>> _iconFinders;
 };
 
 }  // namespace app_launch

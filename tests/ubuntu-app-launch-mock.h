@@ -14,5 +14,4 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-void ubuntu_app_launch_mock_set_primary_pid (GPid pid);
-
+void ubuntu_app_launch_mock_set_primary_pid(GPid pid);

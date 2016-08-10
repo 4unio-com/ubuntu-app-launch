@@ -19,22 +19,18 @@
 
 #include <glib.h>
 
-gboolean
-timeout (gpointer user_data)
-{
-	g_print("Data\n");
-	return TRUE;
+gboolean timeout(gpointer user_data) {
+  g_print("Data\n");
+  return TRUE;
 }
 
-int
-main (int argc, char * argv[])
-{
-	GMainLoop * loop = g_main_loop_new(NULL, FALSE);
+int main(int argc, char* argv[]) {
+  GMainLoop* loop = g_main_loop_new(NULL, FALSE);
 
-	g_timeout_add(100, timeout, NULL);
+  g_timeout_add(100, timeout, NULL);
 
-	g_main_loop_run(loop);
-	g_main_loop_unref(loop);
+  g_main_loop_run(loop);
+  g_main_loop_unref(loop);
 
-	return 0;
+  return 0;
 }

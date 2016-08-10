@@ -17,34 +17,33 @@
  *     Ted Gould <ted.gould@canonical.com>
  */
 
-#include <iostream>
 #include "libubuntu-app-launch/helper.h"
 #include "libubuntu-app-launch/registry.h"
+#include <iostream>
 
-int main(int argc, char* argv[])
-{
-    if (argc != 3)
-    {
-        std::cerr << "Usage: " << argv[0] << " <helper type> <app id>" << std::endl;
-        return 1;
-    }
+int main(int argc, char* argv[]) {
+  if (argc != 3) {
+    std::cerr << "Usage: " << argv[0] << " <helper type> <app id>" << std::endl;
+    return 1;
+  }
 
-    auto type = ubuntu::app_launch::Helper::Type::from_raw(argv[1]);
-    auto appid = ubuntu::app_launch::AppID::find(argv[2]);
-    if (appid.empty()) {
-        std::cerr << "Unable to find helper for appid: " << argv[1] << std::endl;
-        return 1;
-    }
+  auto type = ubuntu::app_launch::Helper::Type::from_raw(argv[1]);
+  auto appid = ubuntu::app_launch::AppID::find(argv[2]);
+  if (appid.empty()) {
+    std::cerr << "Unable to find helper for appid: " << argv[1] << std::endl;
+    return 1;
+  }
 
-    auto registry = std::make_shared<ubuntu::app_launch::Registry>();
+  auto registry = std::make_shared<ubuntu::app_launch::Registry>();
 
-    try {
-        auto helper = ubuntu::app_launch::Helper::create(type, appid, registry);
+  try {
+    auto helper = ubuntu::app_launch::Helper::create(type, appid, registry);
 
-        helper->launch();
-        return 0;
-    } catch (std::runtime_error &e) {
-        std::cerr << "Unable to find helper for '" << std::string(appid) << "' type '" << type.value() << "': " << e.what() << std::endl;
-        return 1;
-    }
+    helper->launch();
+    return 0;
+  } catch (std::runtime_error& e) {
+    std::cerr << "Unable to find helper for '" << std::string(appid)
+              << "' type '" << type.value() << "': " << e.what() << std::endl;
+    return 1;
+  }
 }

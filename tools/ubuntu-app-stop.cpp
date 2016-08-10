@@ -21,31 +21,30 @@
 #include <libubuntu-app-launch/application.h>
 #include <libubuntu-app-launch/registry.h>
 
-int main(int argc, char* argv[])
-{
-    if (argc != 2)
-    {
-        std::cerr << "Usage: " << argv[0] << " <app id>" << std::endl;
-        return 1;
+int main(int argc, char* argv[]) {
+  if (argc != 2) {
+    std::cerr << "Usage: " << argv[0] << " <app id>" << std::endl;
+    return 1;
+  }
+
+  auto appid = ubuntu::app_launch::AppID::find(argv[1]);
+  if (appid.empty()) {
+    std::cerr << "Unable to find app for appid: " << argv[1] << std::endl;
+    return 1;
+  }
+
+  try {
+    auto app = ubuntu::app_launch::Application::create(
+        appid, ubuntu::app_launch::Registry::getDefault());
+
+    for (auto instance : app->instances()) {
+      instance->stop();
     }
+  } catch (std::runtime_error& e) {
+    std::cerr << "Unable to find application for '" << std::string(appid)
+              << "': " << e.what() << std::endl;
+    return 1;
+  }
 
-    auto appid = ubuntu::app_launch::AppID::find(argv[1]);
-    if (appid.empty()) {
-        std::cerr << "Unable to find app for appid: " << argv[1] << std::endl;
-        return 1;
-    }
-
-    try {
-        auto app = ubuntu::app_launch::Application::create(appid, ubuntu::app_launch::Registry::getDefault());
-
-        for (auto instance : app->instances())
-        {
-            instance->stop();
-        }
-    } catch (std::runtime_error &e) {
-        std::cerr << "Unable to find application for '" << std::string(appid) << "': " << e.what() << std::endl;
-        return 1;
-    }
-
-    return 0;
+  return 0;
 }

@@ -23,35 +23,32 @@
 
 #pragma once
 
-namespace ubuntu
-{
-namespace app_launch
-{
-namespace app_impls
-{
+namespace ubuntu {
+namespace app_launch {
+namespace app_impls {
 
-class Legacy : public Base
-{
-public:
-    Legacy(const AppID::AppName& appname, const std::shared_ptr<Registry>& registry);
-    Legacy(const AppID::AppName& appname,
-           const std::string& basedir,
-           const std::shared_ptr<GKeyFile>& keyfile,
-           const std::shared_ptr<Registry>& registry);
+class Legacy : public Base {
+ public:
+  Legacy(const AppID::AppName& appname,
+         const std::shared_ptr<Registry>& registry);
+  Legacy(const AppID::AppName& appname, const std::string& basedir,
+         const std::shared_ptr<GKeyFile>& keyfile,
+         const std::shared_ptr<Registry>& registry);
 
-    AppID appId() override
-    {
-        return {AppID::Package::from_raw({}), _appname, AppID::Version::from_raw({})};
-    }
+  AppID appId() override {
+    return {AppID::Package::from_raw({}), _appname,
+            AppID::Version::from_raw({})};
+  }
 
-    std::shared_ptr<Info> info() override;
+  std::shared_ptr<Info> info() override;
 
-    static std::list<std::shared_ptr<Application>> list(const std::shared_ptr<Registry>& registry);
+  static std::list<std::shared_ptr<Application>> list(
+      const std::shared_ptr<Registry>& registry);
 
-private:
-    AppID::AppName _appname;
-    std::string _basedir;
-    std::shared_ptr<GKeyFile> _keyfile;
+ private:
+  AppID::AppName _appname;
+  std::string _basedir;
+  std::shared_ptr<GKeyFile> _keyfile;
 };
 
 }  // namespace app_impls

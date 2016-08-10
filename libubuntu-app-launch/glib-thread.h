@@ -17,74 +17,68 @@
  *   Ted Gould <ted.gould@canonical.com>
  */
 
-#include <thread>
 #include <future>
+#include <thread>
 
 #include <gio/gio.h>
 
-namespace GLib
-{
+namespace GLib {
 
-class ContextThread
-{
-    std::thread _thread;
-    std::shared_ptr<GMainContext> _context;
-    std::shared_ptr<GMainLoop> _loop;
-    std::shared_ptr<GCancellable> _cancel;
+class ContextThread {
+  std::thread _thread;
+  std::shared_ptr<GMainContext> _context;
+  std::shared_ptr<GMainLoop> _loop;
+  std::shared_ptr<GCancellable> _cancel;
 
-public:
-    ContextThread(std::function<void()> beforeLoop =
-                      []
-                  {
-                  },
-                  std::function<void()> afterLoop =
-                      []
-                  {
-                  });
-    ~ContextThread();
+ public:
+  ContextThread(std::function<void()> beforeLoop = [] {},
+                std::function<void()> afterLoop = [] {});
+  ~ContextThread();
 
-    void quit();
-    bool isCancelled();
-    std::shared_ptr<GCancellable> getCancellable();
+  void quit();
+  bool isCancelled();
+  std::shared_ptr<GCancellable> getCancellable();
 
-    void executeOnThread(std::function<void()> work);
-    template <typename T>
-    auto executeOnThread(std::function<T()> work) -> T
-    {
-        if (std::this_thread::get_id() == _thread.get_id())
-        {
-            /* Don't block if we're on the same thread */
-            return work();
-        }
-
-        std::promise<T> promise;
-        std::function<void()> magicFunc = [&promise, &work]()
-        {
-            promise.set_value(work());
-        };
-
-        executeOnThread(magicFunc);
-
-        auto future = promise.get_future();
-        future.wait();
-        return future.get();
+  void executeOnThread(std::function<void()> work);
+  template <typename T>
+  auto executeOnThread(std::function<T()> work) -> T {
+    if (std::this_thread::get_id() == _thread.get_id()) {
+      /* Don't block if we're on the same thread */
+      return work();
     }
 
-    void timeout(const std::chrono::milliseconds& length, std::function<void()> work);
-    template <class Rep, class Period>
-    void timeout(const std::chrono::duration<Rep, Period>& length, std::function<void()> work)
-    {
-        return timeout(std::chrono::duration_cast<std::chrono::milliseconds>(length), work);
-    }
+    std::promise<T> promise;
+    std::function<void()> magicFunc = [&promise, &work]() {
+      promise.set_value(work());
+    };
 
-    void timeoutSeconds(const std::chrono::seconds& length, std::function<void()> work);
-    template <class Rep, class Period>
-    void timeoutSeconds(const std::chrono::duration<Rep, Period>& length, std::function<void()> work)
-    {
-        return timeoutSeconds(std::chrono::duration_cast<std::chrono::seconds>(length), work);
-    }
+    executeOnThread(magicFunc);
 
-private:
-    void simpleSource(std::function<GSource*()> srcBuilder, std::function<void()> work);
+    auto future = promise.get_future();
+    future.wait();
+    return future.get();
+  }
+
+  void timeout(const std::chrono::milliseconds& length,
+               std::function<void()> work);
+  template <class Rep, class Period>
+  void timeout(const std::chrono::duration<Rep, Period>& length,
+               std::function<void()> work) {
+    return timeout(
+        std::chrono::duration_cast<std::chrono::milliseconds>(length), work);
+  }
+
+  void timeoutSeconds(const std::chrono::seconds& length,
+                      std::function<void()> work);
+  template <class Rep, class Period>
+  void timeoutSeconds(const std::chrono::duration<Rep, Period>& length,
+                      std::function<void()> work) {
+    return timeoutSeconds(
+        std::chrono::duration_cast<std::chrono::seconds>(length), work);
+  }
+
+ private:
+  void simpleSource(std::function<GSource*()> srcBuilder,
+                    std::function<void()> work);
 };
 }

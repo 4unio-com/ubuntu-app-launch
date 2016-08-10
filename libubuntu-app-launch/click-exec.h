@@ -17,9 +17,8 @@
  *     Ted Gould <ted.gould@canonical.com>
  */
 
-#include <glib.h>
 #include "helpers.h"
+#include <glib.h>
 
-gboolean click_task_setup (GDBusConnection * bus, const gchar * app_id, EnvHandle * envhandle);
-
-
+gboolean click_task_setup(GDBusConnection* bus, const gchar* app_id,
+                          EnvHandle* envhandle);

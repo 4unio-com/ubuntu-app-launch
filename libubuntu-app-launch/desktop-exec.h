@@ -19,8 +19,8 @@
 
 #pragma once
 
-#include <glib.h>
 #include "helpers.h"
+#include <glib.h>
 
-gboolean desktop_task_setup (GDBusConnection * bus, const gchar * appid, EnvHandle * envhandle, gboolean is_libertine);
-
+gboolean desktop_task_setup(GDBusConnection* bus, const gchar* appid,
+                            EnvHandle* envhandle, gboolean is_libertine);

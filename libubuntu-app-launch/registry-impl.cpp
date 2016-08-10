@@ -20,159 +20,154 @@
 #include "registry-impl.h"
 #include "application-icon-finder.h"
 
-namespace ubuntu
-{
-namespace app_launch
-{
+namespace ubuntu {
+namespace app_launch {
 
 Registry::Impl::Impl(Registry* registry)
     : thread([]() {},
              [this]() {
-                 _clickUser.reset();
-                 _clickDB.reset();
+               _clickUser.reset();
+               _clickDB.reset();
 
-                 if (_dbus)
-                     g_dbus_connection_flush_sync(_dbus.get(), nullptr, nullptr);
-                 _dbus.reset();
-             })
-    , _registry(registry)
-    , _iconFinders()
+               if (_dbus)
+                 g_dbus_connection_flush_sync(_dbus.get(), nullptr, nullptr);
+               _dbus.reset();
+             }),
+      _registry(registry),
+      _iconFinders()
 // _manager(nullptr)
 {
-    auto cancel = thread.getCancellable();
-    _dbus = thread.executeOnThread<std::shared_ptr<GDBusConnection>>([cancel]() {
-        return std::shared_ptr<GDBusConnection>(g_bus_get_sync(G_BUS_TYPE_SESSION, cancel.get(), nullptr),
-                                                [](GDBusConnection* bus) { g_clear_object(&bus); });
-    });
+  auto cancel = thread.getCancellable();
+  _dbus = thread.executeOnThread<std::shared_ptr<GDBusConnection>>([cancel]() {
+    return std::shared_ptr<GDBusConnection>(
+        g_bus_get_sync(G_BUS_TYPE_SESSION, cancel.get(), nullptr),
+        [](GDBusConnection* bus) { g_clear_object(&bus); });
+  });
 }
 
-void Registry::Impl::initClick()
-{
-    if (_clickDB && _clickUser)
-    {
-        return;
+void Registry::Impl::initClick() {
+  if (_clickDB && _clickUser) {
+    return;
+  }
+
+  auto init = thread.executeOnThread<bool>([this]() {
+    GError* error = nullptr;
+
+    if (!_clickDB) {
+      _clickDB = std::shared_ptr<ClickDB>(
+          click_db_new(), [](ClickDB* db) { g_clear_object(&db); });
+      /* If TEST_CLICK_DB is unset, this reads the system database. */
+      click_db_read(_clickDB.get(), g_getenv("TEST_CLICK_DB"), &error);
+
+      if (error != nullptr) {
+        auto perror = std::shared_ptr<GError>(
+            error, [](GError* error) { g_error_free(error); });
+        throw std::runtime_error(perror->message);
+      }
     }
 
-    auto init = thread.executeOnThread<bool>([this]() {
-        GError* error = nullptr;
+    if (!_clickUser) {
+      _clickUser = std::shared_ptr<ClickUser>(
+          click_user_new_for_user(_clickDB.get(), g_getenv("TEST_CLICK_USER"),
+                                  &error),
+          [](ClickUser* user) { g_clear_object(&user); });
 
-        if (!_clickDB)
-        {
-            _clickDB = std::shared_ptr<ClickDB>(click_db_new(), [](ClickDB* db) { g_clear_object(&db); });
-            /* If TEST_CLICK_DB is unset, this reads the system database. */
-            click_db_read(_clickDB.get(), g_getenv("TEST_CLICK_DB"), &error);
-
-            if (error != nullptr)
-            {
-                auto perror = std::shared_ptr<GError>(error, [](GError* error) { g_error_free(error); });
-                throw std::runtime_error(perror->message);
-            }
-        }
-
-        if (!_clickUser)
-        {
-            _clickUser =
-                std::shared_ptr<ClickUser>(click_user_new_for_user(_clickDB.get(), g_getenv("TEST_CLICK_USER"), &error),
-                                           [](ClickUser* user) { g_clear_object(&user); });
-
-            if (error != nullptr)
-            {
-                auto perror = std::shared_ptr<GError>(error, [](GError* error) { g_error_free(error); });
-                throw std::runtime_error(perror->message);
-            }
-        }
-
-        return true;
-    });
-
-    if (!init)
-    {
-        throw std::runtime_error("Unable to initialize the Click Database");
+      if (error != nullptr) {
+        auto perror = std::shared_ptr<GError>(
+            error, [](GError* error) { g_error_free(error); });
+        throw std::runtime_error(perror->message);
+      }
     }
+
+    return true;
+  });
+
+  if (!init) {
+    throw std::runtime_error("Unable to initialize the Click Database");
+  }
 }
 
-std::shared_ptr<JsonObject> Registry::Impl::getClickManifest(const std::string& package)
-{
-    initClick();
+std::shared_ptr<JsonObject> Registry::Impl::getClickManifest(
+    const std::string& package) {
+  initClick();
 
-    auto retval = thread.executeOnThread<std::shared_ptr<JsonObject>>([this, package]() {
+  auto retval =
+      thread.executeOnThread<std::shared_ptr<JsonObject>>([this, package]() {
         GError* error = nullptr;
-        auto retval = std::shared_ptr<JsonObject>(click_user_get_manifest(_clickUser.get(), package.c_str(), &error),
-                                                  [](JsonObject* obj) {
-                                                      if (obj != nullptr)
-                                                      {
-                                                          json_object_unref(obj);
-                                                      }
-                                                  });
+        auto retval = std::shared_ptr<JsonObject>(
+            click_user_get_manifest(_clickUser.get(), package.c_str(), &error),
+            [](JsonObject* obj) {
+              if (obj != nullptr) {
+                json_object_unref(obj);
+              }
+            });
 
-        if (error != nullptr)
-        {
-            auto perror = std::shared_ptr<GError>(error, [](GError* error) { g_error_free(error); });
-            throw std::runtime_error(perror->message);
+        if (error != nullptr) {
+          auto perror = std::shared_ptr<GError>(
+              error, [](GError* error) { g_error_free(error); });
+          throw std::runtime_error(perror->message);
         }
 
         return retval;
-    });
+      });
 
-    if (!retval)
-        throw std::runtime_error("Unable to get Click manifest for package: " + package);
+  if (!retval)
+    throw std::runtime_error("Unable to get Click manifest for package: " +
+                             package);
 
-    return retval;
+  return retval;
 }
 
-std::list<AppID::Package> Registry::Impl::getClickPackages()
-{
-    initClick();
+std::list<AppID::Package> Registry::Impl::getClickPackages() {
+  initClick();
 
-    return thread.executeOnThread<std::list<AppID::Package>>([this]() {
-        GError* error = nullptr;
-        GList* pkgs = click_db_get_packages(_clickDB.get(), FALSE, &error);
+  return thread.executeOnThread<std::list<AppID::Package>>([this]() {
+    GError* error = nullptr;
+    GList* pkgs = click_db_get_packages(_clickDB.get(), FALSE, &error);
 
-        if (error != nullptr)
-        {
-            auto perror = std::shared_ptr<GError>(error, [](GError* error) { g_error_free(error); });
-            throw std::runtime_error(perror->message);
-        }
-
-        std::list<AppID::Package> list;
-        for (GList* item = pkgs; item != NULL; item = g_list_next(item))
-        {
-            auto pkgobj = reinterpret_cast<ClickInstalledPackage*>(item->data);
-            list.emplace_back(AppID::Package::from_raw(click_installed_package_get_package(pkgobj)));
-        }
-
-        g_list_free_full(pkgs, g_object_unref);
-        return list;
-    });
-}
-
-std::string Registry::Impl::getClickDir(const std::string& package)
-{
-    initClick();
-
-    return thread.executeOnThread<std::string>([this, package]() {
-        GError* error = nullptr;
-        auto dir = click_user_get_path(_clickUser.get(), package.c_str(), &error);
-
-        if (error != nullptr)
-        {
-            auto perror = std::shared_ptr<GError>(error, [](GError* error) { g_error_free(error); });
-            throw std::runtime_error(perror->message);
-        }
-
-        std::string cppdir(dir);
-        g_free(dir);
-        return cppdir;
-    });
-}
-
-std::shared_ptr<IconFinder> Registry::Impl::getIconFinder(std::string basePath)
-{
-    if (_iconFinders.find(basePath) == _iconFinders.end())
-    {
-        _iconFinders[basePath] = std::make_shared<IconFinder>(basePath);
+    if (error != nullptr) {
+      auto perror = std::shared_ptr<GError>(
+          error, [](GError* error) { g_error_free(error); });
+      throw std::runtime_error(perror->message);
     }
-    return _iconFinders[basePath];
+
+    std::list<AppID::Package> list;
+    for (GList* item = pkgs; item != NULL; item = g_list_next(item)) {
+      auto pkgobj = reinterpret_cast<ClickInstalledPackage*>(item->data);
+      list.emplace_back(AppID::Package::from_raw(
+          click_installed_package_get_package(pkgobj)));
+    }
+
+    g_list_free_full(pkgs, g_object_unref);
+    return list;
+  });
+}
+
+std::string Registry::Impl::getClickDir(const std::string& package) {
+  initClick();
+
+  return thread.executeOnThread<std::string>([this, package]() {
+    GError* error = nullptr;
+    auto dir = click_user_get_path(_clickUser.get(), package.c_str(), &error);
+
+    if (error != nullptr) {
+      auto perror = std::shared_ptr<GError>(
+          error, [](GError* error) { g_error_free(error); });
+      throw std::runtime_error(perror->message);
+    }
+
+    std::string cppdir(dir);
+    g_free(dir);
+    return cppdir;
+  });
+}
+
+std::shared_ptr<IconFinder> Registry::Impl::getIconFinder(
+    std::string basePath) {
+  if (_iconFinders.find(basePath) == _iconFinders.end()) {
+    _iconFinders[basePath] = std::make_shared<IconFinder>(basePath);
+  }
+  return _iconFinders[basePath];
 }
 
 #if 0

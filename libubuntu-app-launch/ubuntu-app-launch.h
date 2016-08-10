@@ -35,8 +35,10 @@ extern "C" {
  * Types of failure that we report.
  */
 typedef enum { /*< prefix=UBUNTU_APP_LAUNCH_APP_FAILED */
-	UBUNTU_APP_LAUNCH_APP_FAILED_CRASH,          /*< nick=crash */
-	UBUNTU_APP_LAUNCH_APP_FAILED_START_FAILURE,  /*< nick=start-failure */
+               UBUNTU_APP_LAUNCH_APP_FAILED_CRASH,         /*< nick=crash */
+               UBUNTU_APP_LAUNCH_APP_FAILED_START_FAILURE, /*<
+                                                              nick=start-failure
+                                                              */
 } UbuntuAppLaunchAppFailed;
 
 /**
@@ -44,14 +46,17 @@ typedef enum { /*< prefix=UBUNTU_APP_LAUNCH_APP_FAILED */
  *
  * Function prototype for application observers.
  */
-typedef void (*UbuntuAppLaunchAppObserver) (const gchar * appid, gpointer user_data);
+typedef void (*UbuntuAppLaunchAppObserver)(const gchar* appid,
+                                           gpointer user_data);
 
 /**
  * UbuntuAppLaunchAppFailedObserver:
  *
  * Function prototype for application failed observers.
  */
-typedef void (*UbuntuAppLaunchAppFailedObserver) (const gchar * appid, UbuntuAppLaunchAppFailed failure_type, gpointer user_data);
+typedef void (*UbuntuAppLaunchAppFailedObserver)(
+    const gchar* appid, UbuntuAppLaunchAppFailed failure_type,
+    gpointer user_data);
 
 /**
  * UbuntuAppLaunchAppPausedResumedObserver:
@@ -60,32 +65,39 @@ typedef void (*UbuntuAppLaunchAppFailedObserver) (const gchar * appid, UbuntuApp
  *
  * Function prototype for application paused and resumed observers.
  */
-typedef void (*UbuntuAppLaunchAppPausedResumedObserver) (const gchar * appid, GPid * pids, gpointer user_data);
+typedef void (*UbuntuAppLaunchAppPausedResumedObserver)(const gchar* appid,
+                                                        GPid* pids,
+                                                        gpointer user_data);
 
 /**
  * UbuntuAppLaunchHelperObserver:
  *
  * Function to watch for helpers that are starting and stopping
  */
-typedef void (*UbuntuAppLaunchHelperObserver) (const gchar * appid, const gchar * instanceid, const gchar * helpertype, gpointer user_data);
+typedef void (*UbuntuAppLaunchHelperObserver)(const gchar* appid,
+                                              const gchar* instanceid,
+                                              const gchar* helpertype,
+                                              gpointer user_data);
 
 /**
  * ubuntu_app_launch_start_application:
  * @appid: ID of the application to launch
- * @uris: (allow-none) (array zero-terminated=1) (element-type utf8) (transfer none): A NULL terminated list of URIs to send to the application
+ * @uris: (allow-none) (array zero-terminated=1) (element-type utf8)
+ * (transfer none): A NULL terminated list of URIs to send to the application
  *
  * Asks upstart to launch an application.
  *
  * Return value: Whether the launch succeeded (may fail later, but upstart
  *    will report the error in that case.
  */
-gboolean   ubuntu_app_launch_start_application         (const gchar *                     appid,
-                                                         const gchar * const *             uris);
+gboolean ubuntu_app_launch_start_application(const gchar* appid,
+                                             const gchar* const* uris);
 
 /**
  * ubuntu_app_launch_start_application_test:
  * @appid: ID of the application to launch
- * @uris: (allow-none) (array zero-terminated=1) (element-type utf8) (transfer none): A NULL terminated list of URIs to send to the application
+ * @uris: (allow-none) (array zero-terminated=1) (element-type utf8)
+ * (transfer none): A NULL terminated list of URIs to send to the application
  *
  * Asks upstart to launch an application with environment variables set
  * to enable testing.  Should only be used in testing.
@@ -93,8 +105,8 @@ gboolean   ubuntu_app_launch_start_application         (const gchar *           
  * Return value: Whether the launch succeeded (may fail later, but upstart
  *    will report the error in that case.
  */
-gboolean   ubuntu_app_launch_start_application_test    (const gchar *                     appid,
-                                                         const gchar * const *             uris);
+gboolean ubuntu_app_launch_start_application_test(const gchar* appid,
+                                                  const gchar* const* uris);
 
 /**
  * ubuntu_app_launch_stop_application:
@@ -106,7 +118,7 @@ gboolean   ubuntu_app_launch_start_application_test    (const gchar *           
  *    used ubuntu_app_launch_observer_add_app_stop() to know when it is
  *    finally stopped.
  */
-gboolean   ubuntu_app_launch_stop_application         (const gchar *                     appid);
+gboolean ubuntu_app_launch_stop_application(const gchar* appid);
 
 /**
  * ubuntu_app_launch_pause_application:
@@ -116,7 +128,7 @@ gboolean   ubuntu_app_launch_stop_application         (const gchar *            
  *
  * Return value: Whether we were able to send SIGSTOP to all processes.
  */
-gboolean   ubuntu_app_launch_pause_application         (const gchar *                     appid);
+gboolean ubuntu_app_launch_pause_application(const gchar* appid);
 
 /**
  * ubuntu_app_launch_resume_application:
@@ -126,7 +138,7 @@ gboolean   ubuntu_app_launch_pause_application         (const gchar *           
  *
  * Return value: Whether we were able to send SIGCONT to all processes.
  */
-gboolean   ubuntu_app_launch_resume_application         (const gchar *                     appid);
+gboolean ubuntu_app_launch_resume_application(const gchar* appid);
 
 /**
  * ubuntu_app_launch_application_log_path:
@@ -139,7 +151,7 @@ gboolean   ubuntu_app_launch_resume_application         (const gchar *          
  *
  * Return value: Path to a log file or NULL if unavailable
  */
-gchar *    ubuntu_app_launch_application_log_path     (const gchar *                     appid);
+gchar* ubuntu_app_launch_application_log_path(const gchar* appid);
 
 /**
  * ubuntu_app_launch_application_info:
@@ -153,9 +165,8 @@ gchar *    ubuntu_app_launch_application_log_path     (const gchar *            
  *
  * Return value: Whether @appid could be found
  */
-gboolean   ubuntu_app_launch_application_info         (const gchar *                     appid,
-                                                       gchar **                          appdir,
-                                                       gchar **                          appdesktop);
+gboolean ubuntu_app_launch_application_info(const gchar* appid, gchar** appdir,
+                                            gchar** appdesktop);
 
 /**
  * ubuntu_app_launch_observer_add_app_starting:
@@ -168,8 +179,8 @@ gboolean   ubuntu_app_launch_application_info         (const gchar *            
  *
  * Return value: Whether adding the observer was successful.
  */
-gboolean   ubuntu_app_launch_observer_add_app_starting (UbuntuAppLaunchAppObserver       observer,
-                                                         gpointer                          user_data);
+gboolean ubuntu_app_launch_observer_add_app_starting(
+    UbuntuAppLaunchAppObserver observer, gpointer user_data);
 /**
  * ubuntu_app_launch_observer_add_app_started:
  * @observer: (scope notified): Callback when an application started
@@ -180,8 +191,8 @@ gboolean   ubuntu_app_launch_observer_add_app_starting (UbuntuAppLaunchAppObserv
  *
  * Return value: Whether adding the observer was successful.
  */
-gboolean   ubuntu_app_launch_observer_add_app_started  (UbuntuAppLaunchAppObserver       observer,
-                                                         gpointer                          user_data);
+gboolean ubuntu_app_launch_observer_add_app_started(
+    UbuntuAppLaunchAppObserver observer, gpointer user_data);
 /**
  * ubuntu_app_launch_observer_add_app_stop:
  * @observer: (scope notified): Callback when an application stops
@@ -192,12 +203,13 @@ gboolean   ubuntu_app_launch_observer_add_app_started  (UbuntuAppLaunchAppObserv
  *
  * Return value: Whether adding the observer was successful.
  */
-gboolean   ubuntu_app_launch_observer_add_app_stop     (UbuntuAppLaunchAppObserver       observer,
-                                                         gpointer                          user_data);
+gboolean ubuntu_app_launch_observer_add_app_stop(
+    UbuntuAppLaunchAppObserver observer, gpointer user_data);
 
 /**
  * ubuntu_app_launch_observer_add_app_focus:
- * @observer: (scope notified): Callback when an application is started for the second time
+ * @observer: (scope notified): Callback when an application is started for the
+ * second time
  * @user_data: (closure) (allow-none): Data to pass to the observer
  *
  * Sets up a callback to get called each time an app gets called
@@ -205,12 +217,13 @@ gboolean   ubuntu_app_launch_observer_add_app_stop     (UbuntuAppLaunchAppObserv
  *
  * Return value: Whether adding the observer was successful.
  */
-gboolean   ubuntu_app_launch_observer_add_app_focus    (UbuntuAppLaunchAppObserver       observer,
-                                                         gpointer                          user_data);
+gboolean ubuntu_app_launch_observer_add_app_focus(
+    UbuntuAppLaunchAppObserver observer, gpointer user_data);
 
 /**
  * ubuntu_app_launch_observer_add_app_resume:
- * @observer: (scope notified): Callback when an application is started and possibly asleep
+ * @observer: (scope notified): Callback when an application is started and
+ * possibly asleep
  * @user_data: (closure) (allow-none): Data to pass to the observer
  *
  * Sets up a callback to get called each time an app gets called
@@ -219,8 +232,8 @@ gboolean   ubuntu_app_launch_observer_add_app_focus    (UbuntuAppLaunchAppObserv
  *
  * Return value: Whether adding the observer was successful.
  */
-gboolean   ubuntu_app_launch_observer_add_app_resume   (UbuntuAppLaunchAppObserver       observer,
-                                                         gpointer                          user_data);
+gboolean ubuntu_app_launch_observer_add_app_resume(
+    UbuntuAppLaunchAppObserver observer, gpointer user_data);
 
 /**
  * ubuntu_app_launch_observer_add_app_failed:
@@ -232,8 +245,8 @@ gboolean   ubuntu_app_launch_observer_add_app_resume   (UbuntuAppLaunchAppObserv
  *
  * Return value: Whether adding the observer was successful.
  */
-gboolean   ubuntu_app_launch_observer_add_app_failed   (UbuntuAppLaunchAppFailedObserver observer,
-                                                         gpointer                          user_data);
+gboolean ubuntu_app_launch_observer_add_app_failed(
+    UbuntuAppLaunchAppFailedObserver observer, gpointer user_data);
 
 /**
  * ubuntu_app_launch_observer_add_app_paused:
@@ -245,8 +258,8 @@ gboolean   ubuntu_app_launch_observer_add_app_failed   (UbuntuAppLaunchAppFailed
  *
  * Return value: Whether adding the observer was successful.
  */
-gboolean   ubuntu_app_launch_observer_add_app_paused   (UbuntuAppLaunchAppPausedResumedObserver observer,
-                                                        gpointer                                user_data);
+gboolean ubuntu_app_launch_observer_add_app_paused(
+    UbuntuAppLaunchAppPausedResumedObserver observer, gpointer user_data);
 
 /**
  * ubuntu_app_launch_observer_add_app_resumed:
@@ -258,8 +271,8 @@ gboolean   ubuntu_app_launch_observer_add_app_paused   (UbuntuAppLaunchAppPaused
  *
  * Return value: Whether adding the observer was successful.
  */
-gboolean   ubuntu_app_launch_observer_add_app_resumed  (UbuntuAppLaunchAppPausedResumedObserver observer,
-                                                        gpointer                                user_data);
+gboolean ubuntu_app_launch_observer_add_app_resumed(
+    UbuntuAppLaunchAppPausedResumedObserver observer, gpointer user_data);
 
 /**
  * ubuntu_app_launch_observer_delete_app_starting:
@@ -271,8 +284,8 @@ gboolean   ubuntu_app_launch_observer_add_app_resumed  (UbuntuAppLaunchAppPaused
  *
  * Return value: Whether deleting the observer was successful.
  */
-gboolean   ubuntu_app_launch_observer_delete_app_starting (UbuntuAppLaunchAppObserver       observer,
-                                                            gpointer                          user_data);
+gboolean ubuntu_app_launch_observer_delete_app_starting(
+    UbuntuAppLaunchAppObserver observer, gpointer user_data);
 
 /**
  * ubuntu_app_launch_observer_delete_app_started:
@@ -284,8 +297,8 @@ gboolean   ubuntu_app_launch_observer_delete_app_starting (UbuntuAppLaunchAppObs
  *
  * Return value: Whether deleting the observer was successful.
  */
-gboolean   ubuntu_app_launch_observer_delete_app_started (UbuntuAppLaunchAppObserver       observer,
-                                                         gpointer                          user_data);
+gboolean ubuntu_app_launch_observer_delete_app_started(
+    UbuntuAppLaunchAppObserver observer, gpointer user_data);
 /**
  * ubuntu_app_launch_observer_delete_app_stop:
  * @observer: (scope notified): Callback to remove
@@ -296,8 +309,8 @@ gboolean   ubuntu_app_launch_observer_delete_app_started (UbuntuAppLaunchAppObse
  *
  * Return value: Whether deleting the observer was successful.
  */
-gboolean   ubuntu_app_launch_observer_delete_app_stop  (UbuntuAppLaunchAppObserver       observer,
-                                                         gpointer                          user_data);
+gboolean ubuntu_app_launch_observer_delete_app_stop(
+    UbuntuAppLaunchAppObserver observer, gpointer user_data);
 
 /**
  * ubuntu_app_launch_observer_delete_app_focus:
@@ -309,8 +322,8 @@ gboolean   ubuntu_app_launch_observer_delete_app_stop  (UbuntuAppLaunchAppObserv
  *
  * Return value: Whether deleting the observer was successful.
  */
-gboolean   ubuntu_app_launch_observer_delete_app_focus    (UbuntuAppLaunchAppObserver       observer,
-                                                            gpointer                          user_data);
+gboolean ubuntu_app_launch_observer_delete_app_focus(
+    UbuntuAppLaunchAppObserver observer, gpointer user_data);
 
 /**
  * ubuntu_app_launch_observer_delete_app_resume:
@@ -322,8 +335,8 @@ gboolean   ubuntu_app_launch_observer_delete_app_focus    (UbuntuAppLaunchAppObs
  *
  * Return value: Whether deleting the observer was successful.
  */
-gboolean   ubuntu_app_launch_observer_delete_app_resume   (UbuntuAppLaunchAppObserver       observer,
-                                                            gpointer                          user_data);
+gboolean ubuntu_app_launch_observer_delete_app_resume(
+    UbuntuAppLaunchAppObserver observer, gpointer user_data);
 
 /**
  * ubuntu_app_launch_observer_delete_app_failed:
@@ -335,8 +348,8 @@ gboolean   ubuntu_app_launch_observer_delete_app_resume   (UbuntuAppLaunchAppObs
  *
  * Return value: Whether deleting the observer was successful.
  */
-gboolean   ubuntu_app_launch_observer_delete_app_failed (UbuntuAppLaunchAppFailedObserver        observer,
-                                                          gpointer                                 user_data);
+gboolean ubuntu_app_launch_observer_delete_app_failed(
+    UbuntuAppLaunchAppFailedObserver observer, gpointer user_data);
 
 /**
  * ubuntu_app_launch_observer_delete_app_paused:
@@ -348,8 +361,8 @@ gboolean   ubuntu_app_launch_observer_delete_app_failed (UbuntuAppLaunchAppFaile
  *
  * Return value: Whether deleting the observer was successful.
  */
-gboolean   ubuntu_app_launch_observer_delete_app_paused (UbuntuAppLaunchAppPausedResumedObserver observer,
-                                                         gpointer                                user_data);
+gboolean ubuntu_app_launch_observer_delete_app_paused(
+    UbuntuAppLaunchAppPausedResumedObserver observer, gpointer user_data);
 
 /**
  * ubuntu_app_launch_observer_delete_app_resumed:
@@ -361,8 +374,8 @@ gboolean   ubuntu_app_launch_observer_delete_app_paused (UbuntuAppLaunchAppPause
  *
  * Return value: Whether deleting the observer was successful.
  */
-gboolean   ubuntu_app_launch_observer_delete_app_resumed (UbuntuAppLaunchAppPausedResumedObserver  observer,
-                                                          gpointer                                 user_data);
+gboolean ubuntu_app_launch_observer_delete_app_resumed(
+    UbuntuAppLaunchAppPausedResumedObserver observer, gpointer user_data);
 
 /**
  * ubuntu_app_launch_list_running_apps:
@@ -373,7 +386,7 @@ gboolean   ubuntu_app_launch_observer_delete_app_resumed (UbuntuAppLaunchAppPaus
  * Return value: (transfer full): A NULL terminated list of
  *     application IDs.  Should be free'd with g_strfreev().
  */
-gchar **   ubuntu_app_launch_list_running_apps         (void);
+gchar** ubuntu_app_launch_list_running_apps(void);
 
 /**
  * ubuntu_app_launch_get_primary_pid:
@@ -385,7 +398,7 @@ gchar **   ubuntu_app_launch_list_running_apps         (void);
  * Return Value: Either the PID of the application or 0 if it
  *     is not running.
  */
-GPid       ubuntu_app_launch_get_primary_pid           (const gchar *                     appid);
+GPid ubuntu_app_launch_get_primary_pid(const gchar* appid);
 
 /**
  * ubuntu_app_launch_get_pids:
@@ -397,7 +410,7 @@ GPid       ubuntu_app_launch_get_primary_pid           (const gchar *           
  * Return Value: (transfer full) (element-type GLib.Pid): A list
  *   of PIDs associated with @appid, empty if not running.
  */
-GList *     ubuntu_app_launch_get_pids                 (const gchar *                     appid);
+GList* ubuntu_app_launch_get_pids(const gchar* appid);
 
 /**
  * ubuntu_app_launch_pid_in_app_id:
@@ -412,8 +425,7 @@ GList *     ubuntu_app_launch_get_pids                 (const gchar *           
  *
  * Return Value: Whether @pid is associated with the @appid
  */
-gboolean   ubuntu_app_launch_pid_in_app_id             (GPid                              pid,
-                                                         const gchar *                     appid);
+gboolean ubuntu_app_launch_pid_in_app_id(GPid pid, const gchar* appid);
 
 /**
  * ubuntu_app_launch_triplet_to_app_id:
@@ -428,21 +440,22 @@ gboolean   ubuntu_app_launch_pid_in_app_id             (GPid                    
  * and "only-listed-app" can be used.  A NULL value will default to the
  * first listed app.
  *
- * For the @version parameter only one wildcard is allowed, "current-user-version".
+ * For the @version parameter only one wildcard is allowed,
+ * "current-user-version".
  * If NULL is passed that is the default.
  *
- * Return Value: Either the properly constructed @appid or NULL if it failed 
+ * Return Value: Either the properly constructed @appid or NULL if it failed
  *     to construct it.
  */
-gchar *     ubuntu_app_launch_triplet_to_app_id        (const gchar *                     pkg,
-                                                         const gchar *                     app,
-                                                         const gchar *                     version);
+gchar* ubuntu_app_launch_triplet_to_app_id(const gchar* pkg, const gchar* app,
+                                           const gchar* version);
 
 /**
  * ubuntu_app_launch_app_id_parse:
  * @appid: Application ID to parse
  * @package: (out) (transfer full) (allow-none): Package section of @appid
- * @application: (out) (transfer full) (allow-none): Application section of @appid
+ * @application: (out) (transfer full) (allow-none): Application section of
+ * @appid
  * @version: (out) (transfer full) (allow-none): Version section of @appid
  *
  * Takes an application ID @appid and breaks it into its component parts.  Each
@@ -451,16 +464,15 @@ gchar *     ubuntu_app_launch_triplet_to_app_id        (const gchar *           
  *
  * Return value: Whether @appid is valid
  */
-gboolean    ubuntu_app_launch_app_id_parse             (const gchar *                     appid,
-                                                         gchar **                          package,
-                                                         gchar **                          application,
-                                                         gchar **                          version);
+gboolean ubuntu_app_launch_app_id_parse(const gchar* appid, gchar** package,
+                                        gchar** application, gchar** version);
 
 /**
  * ubuntu_app_launch_start_helper:
  * @type: Type of helper
  * @appid: App ID of the helper
- * @uris: (allow-none) (array zero-terminated=1) (element-type utf8) (transfer none): A NULL terminated list of URIs to send to the helper
+ * @uris: (allow-none) (array zero-terminated=1) (element-type utf8)
+ * (transfer none): A NULL terminated list of URIs to send to the helper
  *
  * Start an untrusted helper for a specific @type on a given
  * @appid.  We don't know how that is done specifically, as Upstart
@@ -469,15 +481,15 @@ gboolean    ubuntu_app_launch_app_id_parse             (const gchar *           
  *
  * Return value: Whether the helper was able to be started
  */
-gboolean   ubuntu_app_launch_start_helper              (const gchar *                     type,
-                                                         const gchar *                     appid,
-                                                         const gchar * const *             uris);
+gboolean ubuntu_app_launch_start_helper(const gchar* type, const gchar* appid,
+                                        const gchar* const* uris);
 
 /**
  * ubuntu_app_launch_start_multiple_helper:
  * @type: Type of helper
  * @appid: App ID of the helper
- * @uris: (allow-none) (array zero-terminated=1) (element-type utf8) (transfer none): A NULL terminated list of URIs to send to the helper
+ * @uris: (allow-none) (array zero-terminated=1) (element-type utf8)
+ * (transfer none): A NULL terminated list of URIs to send to the helper
  *
  * Start an untrusted helper for a specific @type of a given
  * @appid.  We don't know how that is done specifically, as Upstart
@@ -489,16 +501,17 @@ gboolean   ubuntu_app_launch_start_helper              (const gchar *           
  *
  * Return value: The generated instance ID or NULL on failure
  */
-gchar *    ubuntu_app_launch_start_multiple_helper     (const gchar *                     type,
-                                                         const gchar *                     appid,
-                                                         const gchar * const *             uris);
+gchar* ubuntu_app_launch_start_multiple_helper(const gchar* type,
+                                               const gchar* appid,
+                                               const gchar* const* uris);
 
 /**
  * ubuntu_app_launch_start_session_helper:
  * @type: Type of helper
  * @session: Mir Trusted Prompt Session to run the helper under
  * @appid: App ID of the helper
- * @uris: (allow-none) (array zero-terminated=1) (element-type utf8) (transfer none): A NULL terminated list of URIs to send to the helper
+ * @uris: (allow-none) (array zero-terminated=1) (element-type utf8)
+ * (transfer none): A NULL terminated list of URIs to send to the helper
  *
  * Start an untrusted helper for a specific @type of a given
  * @appid running under a Mir Trusted Prompt Session @session. The
@@ -511,10 +524,10 @@ gchar *    ubuntu_app_launch_start_multiple_helper     (const gchar *           
  *
  * Return value: The generated instance ID or NULL on failure
  */
-gchar *    ubuntu_app_launch_start_session_helper  (const gchar *            type,
-                                                    MirPromptSession *       session,
-                                                    const gchar *            appid,
-                                                    const gchar * const *    uris);
+gchar* ubuntu_app_launch_start_session_helper(const gchar* type,
+                                              MirPromptSession* session,
+                                              const gchar* appid,
+                                              const gchar* const* uris);
 
 /**
  * ubuntu_app_launch_stop_helper:
@@ -527,8 +540,7 @@ gchar *    ubuntu_app_launch_start_session_helper  (const gchar *            typ
  *
  * Return value: Whether the helper is stopped
  */
-gboolean   ubuntu_app_launch_stop_helper               (const gchar *                     type,
-                                                         const gchar *                     appid);
+gboolean ubuntu_app_launch_stop_helper(const gchar* type, const gchar* appid);
 
 /**
  * ubuntu_app_launch_stop_multiple_helper:
@@ -542,9 +554,9 @@ gboolean   ubuntu_app_launch_stop_helper               (const gchar *           
  *
  * Return value: Whether the helper is stopped
  */
-gboolean   ubuntu_app_launch_stop_multiple_helper      (const gchar *                     type,
-                                                         const gchar *                     appid,
-                                                         const gchar *                     instanceid);
+gboolean ubuntu_app_launch_stop_multiple_helper(const gchar* type,
+                                                const gchar* appid,
+                                                const gchar* instanceid);
 
 /**
  * ubuntu_app_launch_list_helpers:
@@ -554,7 +566,7 @@ gboolean   ubuntu_app_launch_stop_multiple_helper      (const gchar *           
  *
  * Return value: (transfer full): List of application IDs
  */
-gchar **   ubuntu_app_launch_list_helpers              (const gchar *                     type);
+gchar** ubuntu_app_launch_list_helpers(const gchar* type);
 
 /**
  * ubuntu_app_launch_list_helper_instances:
@@ -565,9 +577,8 @@ gchar **   ubuntu_app_launch_list_helpers              (const gchar *           
  *
  * Return value: (transfer full): List of instance IDs
  */
-gchar **   ubuntu_app_launch_list_helper_instances     (const gchar *                     type,
-                                                         const gchar *                     appid);
-
+gchar** ubuntu_app_launch_list_helper_instances(const gchar* type,
+                                                const gchar* appid);
 
 /**
  * ubuntu_app_launch_observer_add_helper_started:
@@ -580,9 +591,9 @@ gchar **   ubuntu_app_launch_list_helper_instances     (const gchar *           
  *
  * Return value: Whether adding the observer was successful.
  */
-gboolean   ubuntu_app_launch_observer_add_helper_started  (UbuntuAppLaunchHelperObserver    observer,
-                                                            const gchar *                     helper_type,
-                                                            gpointer                          user_data);
+gboolean ubuntu_app_launch_observer_add_helper_started(
+    UbuntuAppLaunchHelperObserver observer, const gchar* helper_type,
+    gpointer user_data);
 /**
  * ubuntu_app_launch_observer_add_helper_stop:
  * @observer: (scope notified): Callback when a helper stops
@@ -594,9 +605,9 @@ gboolean   ubuntu_app_launch_observer_add_helper_started  (UbuntuAppLaunchHelper
  *
  * Return value: Whether adding the observer was successful.
  */
-gboolean   ubuntu_app_launch_observer_add_helper_stop       (UbuntuAppLaunchHelperObserver    observer,
-                                                              const gchar *                     helper_type,
-                                                              gpointer                          user_data);
+gboolean ubuntu_app_launch_observer_add_helper_stop(
+    UbuntuAppLaunchHelperObserver observer, const gchar* helper_type,
+    gpointer user_data);
 /**
  * ubuntu_app_launch_observer_delete_helper_started:
  * @observer: (scope notified): Callback to remove
@@ -608,9 +619,9 @@ gboolean   ubuntu_app_launch_observer_add_helper_stop       (UbuntuAppLaunchHelp
  *
  * Return value: Whether deleting the observer was successful.
  */
-gboolean   ubuntu_app_launch_observer_delete_helper_started (UbuntuAppLaunchHelperObserver    observer,
-                                                              const gchar *                     helper_type,
-                                                              gpointer                          user_data);
+gboolean ubuntu_app_launch_observer_delete_helper_started(
+    UbuntuAppLaunchHelperObserver observer, const gchar* helper_type,
+    gpointer user_data);
 /**
  * ubuntu_app_launch_observer_delete_helper_stop:
  * @observer: (scope notified): Callback to remove
@@ -622,9 +633,9 @@ gboolean   ubuntu_app_launch_observer_delete_helper_started (UbuntuAppLaunchHelp
  *
  * Return value: Whether deleting the observer was successful.
  */
-gboolean   ubuntu_app_launch_observer_delete_helper_stop    (UbuntuAppLaunchHelperObserver    observer,
-                                                              const gchar *                     helper_type,
-                                                              gpointer                          user_data);
+gboolean ubuntu_app_launch_observer_delete_helper_stop(
+    UbuntuAppLaunchHelperObserver observer, const gchar* helper_type,
+    gpointer user_data);
 
 /**
  * ubuntu_app_launch_helper_set_exec:
@@ -641,8 +652,8 @@ gboolean   ubuntu_app_launch_observer_delete_helper_stop    (UbuntuAppLaunchHelp
  *
  * Return Value: Whether we were able to set the exec line
  */
-gboolean   ubuntu_app_launch_helper_set_exec       (const gchar *            execline,
-                                                    const gchar *            directory);
+gboolean ubuntu_app_launch_helper_set_exec(const gchar* execline,
+                                           const gchar* directory);
 
 #ifdef __cplusplus
 }

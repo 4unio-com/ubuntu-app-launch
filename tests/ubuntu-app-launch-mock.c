@@ -21,19 +21,15 @@
 #include "ubuntu-app-launch-mock.h"
 
 static GPid primary_pid = 0;
-static gchar * primary_pid_appid = NULL;
+static gchar* primary_pid_appid = NULL;
 
-GPid
-ubuntu_app_launch_get_primary_pid (const gchar * appid)
-{
-	g_free(primary_pid_appid);
-	primary_pid_appid = g_strdup(appid);
-	return primary_pid;
+GPid ubuntu_app_launch_get_primary_pid(const gchar* appid) {
+  g_free(primary_pid_appid);
+  primary_pid_appid = g_strdup(appid);
+  return primary_pid;
 }
 
-void
-ubuntu_app_launch_mock_set_primary_pid (GPid pid)
-{
-	primary_pid = pid;
-	return;
+void ubuntu_app_launch_mock_set_primary_pid(GPid pid) {
+  primary_pid = pid;
+  return;
 }

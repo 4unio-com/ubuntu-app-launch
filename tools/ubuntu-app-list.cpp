@@ -17,16 +17,14 @@
  *     Ted Gould <ted.gould@canonical.com>
  */
 
-#include <iostream>
 #include "libubuntu-app-launch/registry.h"
+#include <iostream>
 
-int main(int argc, char* argv[])
-{
-    auto apps = ubuntu::app_launch::Registry::runningApps();
-    for (auto app : apps)
-    {
-        std::cout << (std::string)app->appId() << std::endl;
-    }
+int main(int argc, char* argv[]) {
+  auto apps = ubuntu::app_launch::Registry::runningApps();
+  for (auto app : apps) {
+    std::cout << (std::string)app->appId() << std::endl;
+  }
 
-    return 0;
+  return 0;
 }
