@@ -1600,9 +1600,9 @@ TEST_F(LibUAL, AppInfo)
 
     /* Correct values for nested libertine */
     auto nestedid = ubuntu::app_launch::AppID::parse("container-name_test-nested_0.0");
-    auto nested = ubuntu::app_launch::Application::create(libertineid, registry);
+    auto nested = ubuntu::app_launch::Application::create(nestedid, registry);
 
     auto nestedinfo = nested->info();
-    EXPECT_TRUE((bool)info);
-    EXPECT_EQ("Test Nested", info->name().value());
+    EXPECT_TRUE((bool)nestedinfo);
+    EXPECT_EQ("Test Nested", nestedinfo->name().value());
 }
