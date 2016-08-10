@@ -214,3 +214,19 @@ ENABLE_COVERAGE_REPORT(
   TESTS application-icon-finder-test application-info-desktop-test cgroup-reap-test exec-util-test failure-test helper-test helper-handshake-test libual-test libual-cpp-test zg-test
   FILTER ${filter-list}
 )
+
+# coding style
+file(GLOB_RECURSE FMT_SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}
+  *.c
+  *.cc
+  *.cpp
+  *.h
+  *.hpp
+)
+add_test(
+  NAME test-code-format
+  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/tests/test-code-format.sh ${FMT_SOURCE_FILES}
+)
+add_custom_target(format
+  COMMAND clang-format -i -style=file ${FMT_SOURCE_FILES}
+)

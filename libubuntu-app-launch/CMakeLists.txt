@@ -59,10 +59,6 @@ app-info.c
 ${LAUNCHER_CPP_SOURCES}
 )
 
-add_custom_target(format
-	COMMAND clang-format -i -style=file ${LAUNCHER_CPP_HEADERS} ${LAUNCHER_CPP_SOURCES}
-)
-
 set(LAUNCHER_GEN_SOURCES
 )
 
