@@ -2,7 +2,8 @@ Source: ubuntu-app-launch
 Section: gnome
 Priority: optional
 Maintainer: Ted Gould <ted@ubuntu.com>
-Build-Depends: click-dev (>= 0.2.2),
+Build-Depends: clang-format,
+               click-dev (>= 0.2.2),
                cmake,
                cmake-extras,
                dbus-x11,
