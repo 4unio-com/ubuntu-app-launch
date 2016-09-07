@@ -17,12 +17,12 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/build.xml.in ${CMAKE_CURRENT_BINARY_D
 
 add_custom_target (gen-api-fuzz
 	COMMAND api-sanity-checker -l ual -d ${CMAKE_CURRENT_BINARY_DIR}/build.xml -gen
-	DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/build.xml
+	DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/build.xml ubuntu-launcher
 )
 
 add_custom_target (build-api-fuzz ALL
 	COMMAND api-sanity-checker -l ual -d ${CMAKE_CURRENT_BINARY_DIR}/build.xml -build
-	DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/build.xml gen-api-fuzz
+	DEPENDS gen-api-fuzz
 )
 
 add_test (NAME api-fuzz
