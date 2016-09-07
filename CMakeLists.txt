@@ -13,6 +13,7 @@ set(ABI_VERSION 3)
 ##########################
 
 option (enable_tests "Build tests" ON)
+option (enable_profiling "Build profiling" OFF)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" "${CMAKE_MODULE_PATH}")
 
@@ -60,6 +61,13 @@ add_compile_options(
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+
+if (${enable_profiling})
+  message("Adding in profiling flags")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -finstrument-functions -fno-omit-frame-pointer -g")
+else()
+  message("Profiling flags removed")
+endif()
 
 enable_testing()
 
