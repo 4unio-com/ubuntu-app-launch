@@ -359,6 +359,7 @@ std::string Legacy::getInstance()
 */
 std::shared_ptr<Application::Instance> Legacy::launch(const std::vector<Application::URL>& urls)
 {
+g_warning("MIKE launching %s", std::string(appId()).c_str());
     std::string instance = getInstance();
     std::function<std::list<std::pair<std::string, std::string>>(void)> envfunc = [this, instance]() {
         return launchEnv(instance);

@@ -739,7 +739,7 @@ std::shared_ptr<UpstartInstance> UpstartInstance::launch(
     return registry->impl->thread.executeOnThread<std::shared_ptr<UpstartInstance>>(
         [&]() -> std::shared_ptr<UpstartInstance> {
             std::string appIdStr{appId};
-            g_debug("Initializing params for an new UpstartInstance for: %s", appIdStr.c_str());
+            g_warning("MIKE Initializing params for an new UpstartInstance for: %s", appIdStr.c_str());
 
             tracepoint(ubuntu_app_launch, libual_start, appIdStr.c_str());
 
@@ -752,7 +752,7 @@ std::shared_ptr<UpstartInstance> UpstartInstance::launch(
             auto handshake = starting_handshake_start(appIdStr.c_str(), timeout);
             if (handshake == nullptr)
             {
-                g_warning("Unable to setup starting handshake");
+                g_warning("MIKE Unable to setup starting handshake");
             }
 
             /* Figure out the DBus path for the job */
@@ -822,7 +822,7 @@ std::shared_ptr<UpstartInstance> UpstartInstance::launch(
             tracepoint(ubuntu_app_launch, handshake_complete, appIdStr.c_str());
 
             /* Call the job start function */
-            g_debug("Asking Upstart to start task for: %s", appIdStr.c_str());
+            g_warning("MIKE Asking Upstart to start task for: %s", appIdStr.c_str());
             g_dbus_connection_call(registry->impl->_dbus.get(),                   /* bus */
                                    DBUS_SERVICE_UPSTART,                          /* service name */
                                    jobpath.c_str(),                               /* Path */
