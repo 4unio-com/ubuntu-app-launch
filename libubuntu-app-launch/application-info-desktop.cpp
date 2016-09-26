@@ -325,6 +325,7 @@ Desktop::Desktop(std::shared_ptr<GKeyFile> keyfile,
           boolFromKeyfile<XMirEnable>(keyfile, "X-Ubuntu-XMir-Enable", (flags & DesktopFlags::XMIR_DEFAULT).any()))
     , _exec(stringFromKeyfile<Exec>(keyfile, "Exec"))
 {
+g_warning("MIKE desktop icon %s", _iconPath.c_str());
 }
 
 }  // namespace app_info
