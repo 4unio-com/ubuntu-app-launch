@@ -679,7 +679,7 @@ void UpstartInstance::application_start_cb(GObject* obj, GAsyncResult* res, gpoi
 
     tracepoint(ubuntu_app_launch, libual_start_message_callback, std::string(data->ptr->appId_).c_str());
 
-    g_debug("Started Message Callback: %s", std::string(data->ptr->appId_).c_str());
+    g_warning("MIKE Started Message Callback: %s", std::string(data->ptr->appId_).c_str());
 
     result = g_dbus_connection_call_finish(G_DBUS_CONNECTION(obj), res, &error);
 
@@ -690,7 +690,7 @@ void UpstartInstance::application_start_cb(GObject* obj, GAsyncResult* res, gpoi
         if (g_dbus_error_is_remote_error(error))
         {
             gchar* remote_error = g_dbus_error_get_remote_error(error);
-            g_debug("Remote error: %s", remote_error);
+            g_warning("MIKE Remote error: %s", remote_error);
             if (g_strcmp0(remote_error, "com.ubuntu.Upstart0_6.Error.AlreadyStarted") == 0)
             {
                 auto urls = urlsToStrv(data->ptr->urls_);
@@ -705,10 +705,12 @@ void UpstartInstance::application_start_cb(GObject* obj, GAsyncResult* res, gpoi
         }
         else
         {
-            g_warning("Unable to emit event to start application: %s", error->message);
+            g_warning("MIKE Unable to emit event to start application: %s", error->message);
         }
         g_error_free(error);
     }
+
+    g_warning("MIKE success");
 
     delete data;
 }
