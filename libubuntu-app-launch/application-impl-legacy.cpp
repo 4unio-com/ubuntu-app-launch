@@ -33,9 +33,6 @@ namespace app_impls
 /** Path that snapd puts desktop files, we don't want to read those directly
     in the Legacy backend. We want to use the snap backend. */
 const std::string snappyDesktopPath{"/var/lib/snapd"};
-/** Special characters that could be an application name that
-    would activate in a regex */
-const static std::regex regexCharacters("([\\.\\-])");
 
 /***********************************
    Prototypes
@@ -78,13 +75,7 @@ Legacy::Legacy(const AppID::AppName& appname, const std::shared_ptr<Registry>& r
         throw std::runtime_error{"Looking like a legacy app, but should be a Snap: " + appname.value()};
     }
 
-    /* Build a regex that'll match instances of the applications which
-       roughly looks like: $(appid)-2345345
-
-       It is important to filter out the special characters that are in
-       the appid.
-    */
-    instanceRegex_ = std::regex("^(?:" + std::regex_replace(_appname.value(), regexCharacters, "\\$&") + ")\\-(\\d*)$");
+    g_debug("Application Legacy object for app '%s'", appname.value().c_str());
 }
 
 std::tuple<std::string, std::shared_ptr<GKeyFile>, std::string> keyfileForApp(const AppID::AppName& name)
@@ -291,23 +282,8 @@ std::list<std::shared_ptr<Application>> Legacy::list(const std::shared_ptr<Regis
 
 std::vector<std::shared_ptr<Application::Instance>> Legacy::instances()
 {
-    std::vector<std::shared_ptr<Instance>> vect;
-    auto startsWith = std::string(appId()) + "-";
-
-    for (auto instance : _registry->impl->upstartInstancesForJob("application-legacy"))
-    {
-        std::smatch instanceMatch;
-        g_debug("Looking at legacy instance: %s", instance.c_str());
-        if (std::regex_match(instance, instanceMatch, instanceRegex_))
-        {
-            vect.emplace_back(std::make_shared<UpstartInstance>(appId(), "application-legacy", instanceMatch[1].str(),
-                                                                std::vector<Application::URL>{}, _registry));
-        }
-    }
-
-    g_debug("Legacy app '%s' has %d instances", std::string(appId()).c_str(), int(vect.size()));
-
-    return vect;
+    auto vbase = _registry->impl->jobs->instances(appId(), "application-legacy");
+    return std::vector<std::shared_ptr<Application::Instance>>(vbase.begin(), vbase.end());
 }
 
 /** Grabs all the environment for a legacy app. Mostly this consists of
@@ -323,6 +299,7 @@ std::list<std::pair<std::string, std::string>> Legacy::launchEnv(const std::stri
     info();
 
     retval.emplace_back(std::make_pair("APP_XMIR_ENABLE", appinfo_->xMirEnable().value() ? "1" : "0"));
+    auto execline = appinfo_->execLine().value();
     if (appinfo_->xMirEnable())
     {
         /* If we're setting up XMir we also need the other helpers
@@ -333,13 +310,31 @@ std::list<std::pair<std::string, std::string>> Legacy::launchEnv(const std::stri
             libertine_launch = LIBERTINE_LAUNCH;
         }
 
-        retval.emplace_back(
-            std::make_pair("APP_EXEC", std::string(libertine_launch) + " " + appinfo_->execLine().value()));
+        execline = std::string(libertine_launch) + " " + execline;
     }
-    else
+
+    auto snappath = getenv("SNAP");
+    if (snappath != nullptr)
     {
-        retval.emplace_back(std::make_pair("APP_EXEC", appinfo_->execLine().value()));
+        /* This means we're inside a snap, and if we're in a snap then
+           the legacy application is in a snap. We need to try and set
+           up the proper environment for that app */
+        retval.emplace_back(std::make_pair("SNAP", snappath));
+
+        auto launcherpath = std::string{snappath} + "/bin/desktop-launch";
+        if (g_file_test(launcherpath.c_str(), G_FILE_TEST_EXISTS))
+        {
+            execline = launcherpath + " " + execline;
+        }
+
+        auto snapenvpath = std::string{snappath} + "/snappyenv";
+        if (g_file_test(snapenvpath.c_str(), G_FILE_TEST_EXISTS))
+        {
+            execline = snapenvpath + " " + execline;
+        }
     }
+
+    retval.emplace_back(std::make_pair("APP_EXEC", execline));
 
     /* Honor the 'Path' key if it is in the desktop file */
     if (g_key_file_has_key(_keyfile.get(), "Desktop Entry", "Path", nullptr))
@@ -368,21 +363,6 @@ std::list<std::pair<std::string, std::string>> Legacy::launchEnv(const std::stri
     return retval;
 }
 
-/** Generates an instance string based on the clock if we're a multi-instance
-    application. */
-std::string Legacy::getInstance()
-{
-    auto single = g_key_file_get_boolean(_keyfile.get(), "Desktop Entry", "X-Ubuntu-Single-Instance", nullptr);
-    if (single)
-    {
-        return {};
-    }
-    else
-    {
-        return std::to_string(g_get_real_time());
-    }
-}
-
 /** Create an UpstartInstance for this AppID using the UpstartInstance launch
     function.
 
@@ -390,12 +370,12 @@ std::string Legacy::getInstance()
 */
 std::shared_ptr<Application::Instance> Legacy::launch(const std::vector<Application::URL>& urls)
 {
-    std::string instance = getInstance();
+    auto instance = getInstance(appinfo_);
     std::function<std::list<std::pair<std::string, std::string>>(void)> envfunc = [this, instance]() {
         return launchEnv(instance);
     };
-    return UpstartInstance::launch(appId(), "application-legacy", instance, urls, _registry,
-                                   UpstartInstance::launchMode::STANDARD, envfunc);
+    return _registry->impl->jobs->launch(appId(), "application-legacy", instance, urls,
+                                         jobs::manager::launchMode::STANDARD, envfunc);
 }
 
 /** Create an UpstartInstance for this AppID using the UpstartInstance launch
@@ -405,12 +385,12 @@ std::shared_ptr<Application::Instance> Legacy::launch(const std::vector<Applicat
 */
 std::shared_ptr<Application::Instance> Legacy::launchTest(const std::vector<Application::URL>& urls)
 {
-    std::string instance = getInstance();
+    auto instance = getInstance(appinfo_);
     std::function<std::list<std::pair<std::string, std::string>>(void)> envfunc = [this, instance]() {
         return launchEnv(instance);
     };
-    return UpstartInstance::launch(appId(), "application-legacy", instance, urls, _registry,
-                                   UpstartInstance::launchMode::TEST, envfunc);
+    return _registry->impl->jobs->launch(appId(), "application-legacy", instance, urls, jobs::manager::launchMode::TEST,
+                                         envfunc);
 }
 
 }  // namespace app_impls
