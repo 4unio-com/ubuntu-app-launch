@@ -84,13 +84,13 @@ public:
                   if (iconvalue != nullptr)
                   {
                       const gchar* prefix{nullptr};
-                      if (g_str_has_prefix(iconvalue, "${SNAP}"))
+                      if (g_str_has_prefix(iconvalue, "${SNAP}/"))
                       {
                           /* There isn't environment parsing in desktop file values :-( */
                           prefix = "${SNAP}";
                       }
 
-                      std::string currentdir = std::string{"/snap/"} + appid.package.value() + "/current";
+                      std::string currentdir = std::string{"/snap/"} + appid.package.value() + "/current/";
                       if (g_str_has_prefix(iconvalue, currentdir.c_str()))
                       {
                           /* What? Why would we encode the snap path from root in a package
@@ -100,7 +100,8 @@ public:
 
                       if (prefix != nullptr)
                       {
-                          g_key_file_set_string(keyfile.get(), "Desktop Entry", "Icon", iconvalue + strlen(prefix));
+                          g_key_file_set_string(keyfile.get(), "Desktop Entry", "Icon", iconvalue + strlen(prefix) - 1);
+                          /* -1 to leave trailing slash */
                       }
 
                       g_free(iconvalue);
