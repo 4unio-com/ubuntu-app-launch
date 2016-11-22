@@ -87,7 +87,7 @@ public:
                       if (g_str_has_prefix(iconvalue, "${SNAP}/"))
                       {
                           /* There isn't environment parsing in desktop file values :-( */
-                          prefix = "${SNAP}";
+                          prefix = "${SNAP}/";
                       }
 
                       std::string currentdir = std::string{"/snap/"} + appid.package.value() + "/current/";
