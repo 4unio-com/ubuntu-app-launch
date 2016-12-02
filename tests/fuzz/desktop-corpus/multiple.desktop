@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Multiple
+Type=Application
+Exec=multiple
+NoDisplay=false
+Hidden=false
+Terminal=false
+Icon=multiple.png
+X-Ubuntu-Single-Instance=false
