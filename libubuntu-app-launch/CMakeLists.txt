@@ -96,7 +96,7 @@ target_link_libraries(launcher-static
 	${CURL_LIBRARIES}
 	-lpthread
 	helpers
-	-Wl,--no-undefined
+	-fsanitize=address
 )
 
 add_library(ubuntu-launcher SHARED ${LAUNCHER_SOURCES} ${LAUNCHER_CPP_SOURCES} ${LAUNCHER_GEN_SOURCES})
@@ -123,7 +123,7 @@ target_link_libraries(ubuntu-launcher
 	${CURL_LIBRARIES}
 	-lpthread
 	helpers
-	-Wl,--no-undefined
+	-fsanitize=address
 )
 
 install(

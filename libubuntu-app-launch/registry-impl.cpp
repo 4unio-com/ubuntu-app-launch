@@ -40,7 +40,6 @@ Registry::Impl::Impl(Registry* registry)
                      g_dbus_connection_flush_sync(_dbus.get(), nullptr, nullptr);
                  _dbus.reset();
              })
-    , _registry(registry)
     , _iconFinders()
 // _manager(nullptr)
 {

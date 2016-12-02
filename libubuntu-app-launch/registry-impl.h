@@ -89,7 +89,6 @@ public:
     static bool isWatchingAppStarting();
 
 private:
-    Registry* _registry;
 #if 0
     Registry::Manager* _manager;
 #endif
