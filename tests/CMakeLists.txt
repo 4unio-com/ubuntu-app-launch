@@ -165,3 +165,5 @@ add_custom_target(format-tests
 	snapd-mock.h
 	zg-test.cc
 )
+
+add_subdirectory(fuzz)
