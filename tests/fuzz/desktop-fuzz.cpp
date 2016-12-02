@@ -29,9 +29,9 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 
     try
     {
-        auto registry = std::make_shared<ubuntu::app_launch::Registry>();
         auto appinfo = std::make_shared<ubuntu::app_launch::app_info::Desktop>(
-            keyfile, "/", "/", ubuntu::app_launch::app_info::DesktopFlags::ALLOW_NO_DISPLAY, registry);
+            keyfile, "/", "/", ubuntu::app_launch::app_info::DesktopFlags::ALLOW_NO_DISPLAY,
+            std::shared_ptr<ubuntu::app_launch::Registry>{});
     }
     catch (...)
     {
