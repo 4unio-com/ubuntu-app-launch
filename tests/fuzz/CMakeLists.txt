@@ -6,3 +6,8 @@ add_executable (desktop-fuzz
 target_link_libraries (desktop-fuzz
 	launcher-static
 	/usr/lib/llvm-3.9/lib/libFuzzer.a)
+
+add_custom_target(format-fuzz
+	COMMAND clang-format -i -style=file
+	desktop-fuzz.cpp
+)
