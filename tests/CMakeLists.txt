@@ -148,11 +148,6 @@ configure_file ("click-desktop-hook-db/test.conf.in" "${CMAKE_CURRENT_BINARY_DIR
 configure_file ("desktop-hook-test.sh.in" "${CMAKE_CURRENT_BINARY_DIR}/desktop-hook-test.sh" @ONLY)
 add_test (desktop-hook-test desktop-hook-test.sh)
 
-# XMir helper Test
-
-configure_file ("xmir-helper-test.in" "${CMAKE_CURRENT_BINARY_DIR}/xmir-helper-test" @ONLY)
-add_test (xmir-helper-test xmir-helper-test)
-
 # Formatted code
 
 add_custom_target(format-tests

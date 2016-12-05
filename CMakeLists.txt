@@ -110,7 +110,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
 
-add_definitions( -DXMIR_HELPER="${pkglibexecdir}/xmir-helper" )
+add_definitions( -DXMIR_LAUNCH="${CMAKE_INSTALL_FULL_BINDIR}/xmir-launch" )
 
 ####################
 # Helpers
@@ -165,14 +165,6 @@ add_executable(application-failed application-failed.c)
 set_target_properties(application-failed PROPERTIES OUTPUT_NAME "application-failed")
 target_link_libraries(application-failed ${GIO2_LIBRARIES})
 install(TARGETS application-failed RUNTIME DESTINATION "${pkglibexecdir}")
-
-####################
-# xmir-helper
-####################
-
-add_executable(xmir-helper xmir-helper.c)
-set_target_properties(xmir-helper PROPERTIES OUTPUT_NAME "xmir-helper")
-install(TARGETS xmir-helper RUNTIME DESTINATION "${pkglibexecdir}")
 
 ####################
 # untrusted-helper-type-end
