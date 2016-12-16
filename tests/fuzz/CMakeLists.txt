@@ -14,3 +14,6 @@ add_custom_target(format-fuzz
 	COMMAND clang-format -i -style=file
 	desktop-fuzz.cpp
 )
+
+add_test (NAME desktop-fuzz-test
+	  COMMAND find ${CMAKE_CURRENT_SOURCE_DIR}/desktop-corpus/ -exec ${CMAKE_CURRENT_BINARY_DIR}/desktop-fuzz "{}" ";")
