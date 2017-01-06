@@ -441,7 +441,7 @@ std::list<std::pair<std::string, std::string>> Snap::launchEnv()
     std::list<std::pair<std::string, std::string>> retval;
 
     retval.emplace_back(std::make_pair("APP_XMIR_ENABLE", info_->xMirEnable().value() ? "1" : "0"));
-    if (info_->xMirEnable())
+    if (info_->xMirEnable() && getenv("SNAP") == nullptr)
     {
         /* If we're setting up XMir we also need the other helpers
            that libertine is helping with */
@@ -456,6 +456,8 @@ std::list<std::pair<std::string, std::string>> Snap::launchEnv()
     }
     else
     {
+        /* If we're in a snap the libertine helpers are setup by
+           the snap stuff */
         retval.emplace_back(std::make_pair("APP_EXEC", info_->execLine().value()));
     }
 
@@ -485,6 +487,11 @@ std::shared_ptr<Application::Instance> Snap::launchTest(const std::vector<Applic
     std::function<std::list<std::pair<std::string, std::string>>(void)> envfunc = [this]() { return launchEnv(); };
     return _registry->impl->jobs->launch(appid_, "application-snap", instance, urls, jobs::manager::launchMode::TEST,
                                          envfunc);
+}
+
+std::shared_ptr<Application::Instance> Snap::findInstance(const std::string& instanceid)
+{
+    return _registry->impl->jobs->existing(appId(), "application-snap", instanceid, std::vector<Application::URL>{});
 }
 
 }  // namespace app_impls

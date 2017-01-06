@@ -289,6 +289,33 @@ std::string SystemD::findEnv(const std::string& value, std::list<std::pair<std::
     return retval;
 }
 
+void SystemD::removeEnv(const std::string& value, std::list<std::pair<std::string, std::string>>& env)
+{
+    auto entry = std::find_if(env.begin(), env.end(),
+                              [&value](std::pair<std::string, std::string>& entry) { return entry.first == value; });
+
+    if (entry != env.end())
+    {
+        env.erase(entry);
+    }
+}
+
+int SystemD::envSize(std::list<std::pair<std::string, std::string>>& env)
+{
+    int len = std::string{"Environment="}.length();
+
+    for (const auto& entry : env)
+    {
+        len += 3; /* two quotes, one space */
+        len += entry.first.length();
+        len += entry.second.length();
+    }
+
+    len -= 1; /* We account for a space each time but the first doesn't have */
+
+    return len;
+}
+
 std::vector<std::string> SystemD::parseExec(std::list<std::pair<std::string, std::string>>& env)
 {
     auto exec = findEnv("APP_EXEC", env);
@@ -321,14 +348,25 @@ std::vector<std::string> SystemD::parseExec(std::list<std::pair<std::string, std
     {
         retval.emplace(retval.begin(), findEnv("APP_ID", env));
 
-        auto xmirenv = getenv("UBUNTU_APP_LAUNCH_XMIR_HELPER");
-        if (xmirenv == nullptr)
+        if (getenv("SNAP") == nullptr)
         {
-            retval.emplace(retval.begin(), XMIR_HELPER);
+            auto xmirenv = getenv("UBUNTU_APP_LAUNCH_XMIR_HELPER");
+            if (xmirenv == nullptr)
+            {
+                retval.emplace(retval.begin(), XMIR_HELPER);
+            }
+            else
+            {
+                retval.emplace(retval.begin(), xmirenv);
+            }
         }
         else
         {
-            retval.emplace(retval.begin(), xmirenv);
+            /* If we're in a snap we need to use the utility which
+               gets us back into the snap */
+            std::string snappath = getenv("SNAP");
+
+            retval.emplace(retval.begin(), snappath + SNAPPY_XMIR);
         }
     }
 
@@ -378,6 +416,7 @@ void SystemD::application_start_cb(GObject* obj, GAsyncResult* res, gpointer use
                             data->ptr->registry_->impl->thread.getCancellable().get(), /* cancellable */
                             data->ptr->primaryPid(),                                   /* primary pid */
                             std::string(data->ptr->appId_).c_str(),                    /* appid */
+                            data->ptr->instance_.c_str(),                              /* instance */
                             urls.get());                                               /* urls */
             }
 
@@ -462,7 +501,7 @@ std::shared_ptr<Application::Instance> SystemD::launch(
                 timeout = 0;
             }
 
-            auto handshake = starting_handshake_start(appIdStr.c_str(), timeout);
+            auto handshake = starting_handshake_start(appIdStr.c_str(), instance.c_str(), timeout);
             if (handshake == nullptr)
             {
                 g_warning("Unable to setup starting handshake");
@@ -480,16 +519,10 @@ std::shared_ptr<Application::Instance> SystemD::launch(
             copyEnv("DISPLAY", env);
             copyEnvByPrefix("DBUS_", env);
             copyEnvByPrefix("MIR_", env);
-            copyEnvByPrefix("QT_", env);
-            copyEnvByPrefix("UBUNTU_", env);
-            copyEnvByPrefix("UNITY_", env);
-            copyEnvByPrefix("XDG_", env);
-
-            if (!findEnv("SNAP", env).empty())
-            {
-                /* If we care about the snap path, grab 'em all */
-                copyEnvByPrefix("SNAP_", env);
-            }
+            // copyEnvByPrefix("QT_", env);
+            copyEnvByPrefix("UBUNTU_APP_LAUNCH_", env);
+            //copyEnvByPrefix("UNITY_", env);
+            // copyEnvByPrefix("XDG_", env);
 
             if (!urls.empty())
             {
@@ -534,25 +567,6 @@ std::shared_ptr<Application::Instance> SystemD::launch(
 
             /* Parameter Array */
             g_variant_builder_open(&builder, G_VARIANT_TYPE_ARRAY);
-
-            /* Environment */
-            g_variant_builder_open(&builder, G_VARIANT_TYPE_TUPLE);
-            g_variant_builder_add_value(&builder, g_variant_new_string("Environment"));
-            g_variant_builder_open(&builder, G_VARIANT_TYPE_VARIANT);
-            g_variant_builder_open(&builder, G_VARIANT_TYPE_ARRAY);
-            for (const auto& envvar : env)
-            {
-                if (!envvar.first.empty() && !envvar.second.empty())
-                {
-                    g_variant_builder_add_value(&builder, g_variant_new_take_string(g_strdup_printf(
-                                                              "%s=%s", envvar.first.c_str(), envvar.second.c_str())));
-                    // g_debug("Setting environment: %s=%s", envvar.first.c_str(), envvar.second.c_str());
-                }
-            }
-
-            g_variant_builder_close(&builder);
-            g_variant_builder_close(&builder);
-            g_variant_builder_close(&builder);
 
             /* ExecStart */
             auto commands = parseExec(env);
@@ -617,6 +631,43 @@ std::shared_ptr<Application::Instance> SystemD::launch(
                 g_variant_builder_close(&builder);
                 g_variant_builder_close(&builder);
             }
+
+            /* Clean up env before shipping it */
+            removeEnv("APP_XMIR_ENABLE", env);
+            removeEnv("APP_DIR", env);
+            removeEnv("APP_URIS", env);
+            removeEnv("APP_EXEC", env);
+            removeEnv("APP_EXEC_POLICY", env);
+            removeEnv("APP_LAUNCHER_PID", env);
+            removeEnv("INSTANCE_ID", env);
+            removeEnv("MIR_SERVER_PLATFORM_PATH", env);
+            removeEnv("MIR_SERVER_PROMPT_FILE", env);
+            removeEnv("MIR_SERVER_HOST_SOCKET", env);
+            removeEnv("UBUNTU_APP_LAUNCH_DEMANGLER", env);
+            removeEnv("UBUNTU_APP_LAUNCH_OOM_HELPER", env);
+            removeEnv("UBUNTU_APP_LAUNCH_LEGACY_ROOT", env);
+            removeEnv("UBUNTU_APP_LAUNCH_XMIR_HELPER", env);
+
+            g_debug("Environment length: %d", envSize(env));
+
+            /* Environment */
+            g_variant_builder_open(&builder, G_VARIANT_TYPE_TUPLE);
+            g_variant_builder_add_value(&builder, g_variant_new_string("Environment"));
+            g_variant_builder_open(&builder, G_VARIANT_TYPE_VARIANT);
+            g_variant_builder_open(&builder, G_VARIANT_TYPE_ARRAY);
+            for (const auto& envvar : env)
+            {
+                if (!envvar.first.empty() && !envvar.second.empty())
+                {
+                    g_variant_builder_add_value(&builder, g_variant_new_take_string(g_strdup_printf(
+                                                              "%s=%s", envvar.first.c_str(), envvar.second.c_str())));
+                    // g_debug("Setting environment: %s=%s", envvar.first.c_str(), envvar.second.c_str());
+                }
+            }
+
+            g_variant_builder_close(&builder);
+            g_variant_builder_close(&builder);
+            g_variant_builder_close(&builder);
 
             /* Parameter Array */
             g_variant_builder_close(&builder);

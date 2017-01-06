@@ -59,6 +59,11 @@ add_compile_options(
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
+STRING(TOLOWER "${CMAKE_BUILD_TYPE}" LOWER_CMAKE_BUILD_TYPE)
+if ("${LOWER_CMAKE_BUILD_TYPE}" STREQUAL "coverage")
+	set(CMAKE_LINK_FLAGS "${CMAKE_LINK_FLAGS} -lgcov")
+endif()
+
 enable_testing()
 
 pkg_check_modules(GLIB2 REQUIRED glib-2.0)
@@ -111,6 +116,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
 
 add_definitions( -DXMIR_HELPER="${pkglibexecdir}/xmir-helper" )
+add_definitions( -DSNAPPY_XMIR="${CMAKE_INSTALL_FULL_BINDIR}/snappy-xmir" )
 
 ####################
 # Helpers
@@ -210,6 +216,30 @@ target_link_libraries(socket-demangler-helper ${GIO2_LIBRARIES})
 install(TARGETS socket-demangler-helper RUNTIME DESTINATION "${pkglibexecdir}")
 
 ####################
+# snappy-xmir
+####################
+
+####################
+# NOTE: This only can link to libraries that are in
+# the base UBUNTU CORE image. Which is basically libc
+# and not much else. Don't add libs.
+####################
+
+add_executable(snappy-xmir snappy-xmir.c)
+set_target_properties(snappy-xmir PROPERTIES OUTPUT_NAME "snappy-xmir")
+install(TARGETS snappy-xmir RUNTIME DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}")
+
+####################
+# snappy-xmir-envvars
+####################
+
+add_executable(snappy-xmir-envvars snappy-xmir-envvars.c)
+set_target_properties(snappy-xmir-envvars PROPERTIES OUTPUT_NAME "snappy-xmir-envvars")
+# No libs, otherwise we have to worry about how to handle finding them
+install(TARGETS snappy-xmir-envvars RUNTIME DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}")
+
+
+####################
 # ubuntu-app-launch-desktop.click-hook
 ####################
 
@@ -237,7 +267,22 @@ if (NOT ${CMAKE_BINARY_DIR} STREQUAL ${CMAKE_SOURCE_DIR})
   list(APPEND filter-list "${CMAKE_BINARY_DIR}/*")
 endif()
 ENABLE_COVERAGE_REPORT(
-  TARGETS ubuntu-launcher
-  TESTS application-icon-finder-test application-info-desktop-test cgroup-reap-test exec-util-test failure-test helper-test helper-handshake-test libual-test libual-cpp-test zg-test
-  FILTER ${filter-list}
+  TARGETS
+  	ubuntu-launcher
+	launcher-static
+  TESTS
+  	application-icon-finder-test
+	application-info-desktop-test
+	cgroup-reap-test exec-util-test
+	failure-test
+	helper-test
+	helper-handshake-test
+	libual-test
+	libual-cpp-test
+	list-apps
+	jobs-base-test
+#	snap-info-test
+	zg-test
+  FILTER
+  	${filter-list}
 )

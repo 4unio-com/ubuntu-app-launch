@@ -300,18 +300,6 @@ std::list<std::pair<std::string, std::string>> Legacy::launchEnv(const std::stri
 
     retval.emplace_back(std::make_pair("APP_XMIR_ENABLE", appinfo_->xMirEnable().value() ? "1" : "0"));
     auto execline = appinfo_->execLine().value();
-    if (appinfo_->xMirEnable())
-    {
-        /* If we're setting up XMir we also need the other helpers
-           that libertine is helping with */
-        auto libertine_launch = g_getenv("UBUNTU_APP_LAUNCH_LIBERTINE_LAUNCH");
-        if (libertine_launch == nullptr)
-        {
-            libertine_launch = LIBERTINE_LAUNCH;
-        }
-
-        execline = std::string(libertine_launch) + " " + execline;
-    }
 
     auto snappath = getenv("SNAP");
     if (snappath != nullptr)
@@ -321,17 +309,25 @@ std::list<std::pair<std::string, std::string>> Legacy::launchEnv(const std::stri
            up the proper environment for that app */
         retval.emplace_back(std::make_pair("SNAP", snappath));
 
-        auto launcherpath = std::string{snappath} + "/bin/desktop-launch";
-        if (g_file_test(launcherpath.c_str(), G_FILE_TEST_EXISTS))
+        const char* legacyexec = getenv("UBUNTU_APP_LAUNCH_SNAP_LEGACY_EXEC");
+        if (legacyexec == nullptr)
         {
-            execline = launcherpath + " " + execline;
+            legacyexec = "/snap/bin/unity8-session.legacy-exec";
         }
 
-        auto snapenvpath = std::string{snappath} + "/snappyenv";
-        if (g_file_test(snapenvpath.c_str(), G_FILE_TEST_EXISTS))
+        execline = std::string{legacyexec} + " " + execline;
+    }
+    else if (appinfo_->xMirEnable().value())
+    {
+        /* If we're setting up XMir we also need the other helpers
+           that libertine is helping with */
+        auto libertine_launch = g_getenv("UBUNTU_APP_LAUNCH_LIBERTINE_LAUNCH");
+        if (libertine_launch == nullptr)
         {
-            execline = snapenvpath + " " + execline;
+            libertine_launch = LIBERTINE_LAUNCH;
         }
+
+        execline = std::string{libertine_launch} + " " + execline;
     }
 
     retval.emplace_back(std::make_pair("APP_EXEC", execline));
@@ -391,6 +387,11 @@ std::shared_ptr<Application::Instance> Legacy::launchTest(const std::vector<Appl
     };
     return _registry->impl->jobs->launch(appId(), "application-legacy", instance, urls, jobs::manager::launchMode::TEST,
                                          envfunc);
+}
+
+std::shared_ptr<Application::Instance> Legacy::findInstance(const std::string& instanceid)
+{
+    return _registry->impl->jobs->existing(appId(), "application-legacy", instanceid, std::vector<Application::URL>{});
 }
 
 }  // namespace app_impls
