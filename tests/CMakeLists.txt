@@ -18,7 +18,7 @@ add_executable (helper-test helper-test.cc)
 add_definitions ( -DCMAKE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}" )
 add_definitions ( -DCMAKE_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}" )
 target_link_libraries (helper-test helpers gtest_main ${GTEST_MAIN_LIBRARIES} ${DBUSTEST_LIBRARIES})
-set_property(GLOBAL APPEND PROPERTY FORMAT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/helper-test.c")
+set_property(GLOBAL APPEND PROPERTY FORMAT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/helper-test.cc")
 
 add_test (helper-test helper-test)
 
