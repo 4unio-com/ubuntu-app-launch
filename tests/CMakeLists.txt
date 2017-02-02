@@ -18,6 +18,7 @@ add_executable (helper-test helper-test.cc)
 add_definitions ( -DCMAKE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}" )
 add_definitions ( -DCMAKE_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}" )
 target_link_libraries (helper-test helpers gtest_main ${GTEST_MAIN_LIBRARIES} ${DBUSTEST_LIBRARIES})
+set_property(GLOBAL APPEND PROPERTY FORMAT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/helper-test.c")
 
 add_test (helper-test helper-test)
 
@@ -25,6 +26,7 @@ add_test (helper-test helper-test)
 
 add_executable (helper-handshake-test helper-handshake-test.cc)
 target_link_libraries (helper-handshake-test helpers gtest_main ${GTEST_MAIN_LIBRARIES})
+set_property(GLOBAL APPEND PROPERTY FORMAT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/helper-handshake-test.cc")
 
 add_test (helper-handshake-test helper-handshake-test)
 
@@ -42,19 +44,24 @@ add_executable (libual-test
 	libual-test.cc
 	mir-mock.cpp)
 target_link_libraries (libual-test gtest_main ${GTEST_MAIN_LIBRARIES} ${LIBUPSTART_LIBRARIES} ${DBUSTEST_LIBRARIES} ubuntu-launcher)
+set_property(GLOBAL APPEND PROPERTY FORMAT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/libual-test.cc")
+set_property(GLOBAL APPEND PROPERTY FORMAT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/mir-mock.cpp")
 
 add_executable (libual-cpp-test
 	libual-cpp-test.cc
 	${CMAKE_SOURCE_DIR}/libubuntu-app-launch/glib-thread.cpp
 	mir-mock.cpp)
 target_link_libraries (libual-cpp-test gtest_main ${GTEST_MAIN_LIBRARIES} ${LIBUPSTART_LIBRARIES} ${DBUSTEST_LIBRARIES} ubuntu-launcher)
+set_property(GLOBAL APPEND PROPERTY FORMAT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/libual-cpp-test.cc")
 
 add_executable (data-spew
 	data-spew.c)
 target_link_libraries (data-spew ${GLIB2_LIBRARIES})
+set_property(GLOBAL APPEND PROPERTY FORMAT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/data-spew.c")
 
 add_executable (socket-tool
 	socket-tool.c)
+set_property(GLOBAL APPEND PROPERTY FORMAT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/socket-tool.c")
 
 add_test (NAME libual-test COMMAND libual-test)
 add_test (NAME libual-cpp-test COMMAND libual-cpp-test)
@@ -64,6 +71,7 @@ add_test (NAME libual-cpp-test COMMAND libual-cpp-test)
 add_executable (jobs-base-test
 	jobs-base-test.cpp)
 target_link_libraries (jobs-base-test ${GMOCK_LIBRARIES} ${GTEST_MAIN_LIBRARIES} launcher-static ${DBUSTEST_LIBRARIES})
+set_property(GLOBAL APPEND PROPERTY FORMAT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/jobs-base-test.cpp")
 
 add_test(NAME jobs-base-test COMMAND jobs-base-test)
 
@@ -77,11 +85,14 @@ target_link_libraries (snapd-info-test gtest_main ${GTEST_MAIN_LIBRARIES} launch
 add_test (NAME snapd-info-test COMMAND snapd-info-test)
 endif()
 
+set_property(GLOBAL APPEND PROPERTY FORMAT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/snapd-info-test.cpp")
+
 # List Apps
 
 add_executable (list-apps
 	list-apps.cpp)
 target_link_libraries (list-apps gtest_main ${GTEST_MAIN_LIBRARIES} launcher-static)
+set_property(GLOBAL APPEND PROPERTY FORMAT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/list-apps.cpp")
 add_test (NAME list-apps COMMAND ${CMAKE_CURRENT_BINARY_DIR}/list-apps)
 
 # Application Info Desktop
@@ -90,6 +101,7 @@ add_executable (application-info-desktop-test
   application-info-desktop.cpp
 )
 target_link_libraries (application-info-desktop-test gtest_main ${GTEST_MAIN_LIBRARIES} launcher-static)
+set_property(GLOBAL APPEND PROPERTY FORMAT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/application-info-desktop.cpp")
 
 add_test (NAME application-info-desktop-test COMMAND application-info-desktop-test)
 
@@ -102,6 +114,7 @@ add_executable (application-icon-finder-test
   #sources
   ${CMAKE_SOURCE_DIR}/libubuntu-app-launch/application-icon-finder.cpp)
 target_link_libraries (application-icon-finder-test gtest_main ${GTEST_MAIN_LIBRARIES} ubuntu-launcher)
+set_property(GLOBAL APPEND PROPERTY FORMAT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/application-icon-finder.cpp")
 
 add_test (NAME application-icon-finder-test COMMAND application-icon-finder-test)
 
@@ -114,6 +127,7 @@ add_definitions ( -DAPP_FAILED_TOOL="${CMAKE_BINARY_DIR}/application-failed" )
 add_executable (failure-test
 	failure-test.cc)
 target_link_libraries (failure-test gtest_main ${GTEST_MAIN_LIBRARIES} ubuntu-launcher)
+set_property(GLOBAL APPEND PROPERTY FORMAT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/failure-test.cc")
 add_test (failure-test failure-test)
 
 # ZG Test
@@ -123,6 +137,7 @@ add_definitions ( -DZG_EVENT_TOOL="${CMAKE_BINARY_DIR}/zg-report-app" )
 add_executable (zg-test
 	zg-test.cc)
 target_link_libraries (zg-test gtest_main ${GTEST_MAIN_LIBRARIES} ${DBUSTEST_LIBRARIES} ${GIO2_LIBRARIES})
+set_property(GLOBAL APPEND PROPERTY FORMAT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/zg-test.cc")
 add_test (zg-test zg-test)
 
 # Exec Line Exec Test
@@ -135,6 +150,7 @@ add_test (exec-test "${CMAKE_CURRENT_BINARY_DIR}/exec-test.sh")
 add_executable (exec-util-test
 	exec-util-test.cc)
 target_link_libraries (exec-util-test gtest_main ubuntu-launcher ${GTEST_MAIN_LIBRARIES} ${DBUSTEST_LIBRARIES} ${GIO2_LIBRARIES})
+set_property(GLOBAL APPEND PROPERTY FORMAT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/exec-util-test.cc")
 add_test (exec-util-test exec-util-test)
 
 # CGroup Reap Test
@@ -144,6 +160,7 @@ add_definitions ( -DCG_REAP_TOOL="${CMAKE_BINARY_DIR}/cgroup-reap-all" )
 add_executable (cgroup-reap-test
 	cgroup-reap-test.cc)
 target_link_libraries (cgroup-reap-test gtest_main ${GTEST_MAIN_LIBRARIES} ${DBUSTEST_LIBRARIES} ${GIO2_LIBRARIES})
+set_property(GLOBAL APPEND PROPERTY FORMAT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/cgroup-reap-test.cc")
 add_test (cgroup-reap-test cgroup-reap-test)
 
 # Desktop Hook Test
@@ -157,18 +174,3 @@ add_test (desktop-hook-test desktop-hook-test.sh)
 configure_file ("xmir-helper-test.in" "${CMAKE_CURRENT_BINARY_DIR}/xmir-helper-test" @ONLY)
 add_test (xmir-helper-test xmir-helper-test)
 
-# Formatted code
-
-add_custom_target(format-tests
-	COMMAND clang-format -i -style=file
-	failure-test.cc
-	application-info-desktop.cpp
-	libual-cpp-test.cc
-	list-apps.cpp
-	eventually-fixture.h
-	jobs-base-test.cpp
-	snapd-info-test.cpp
-	snapd-mock.h
-	spew-master.h
-	zg-test.cc
-)
