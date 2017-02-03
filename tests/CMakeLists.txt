@@ -75,6 +75,14 @@ set_property(GLOBAL APPEND PROPERTY FORMAT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/
 
 add_test(NAME jobs-base-test COMMAND jobs-base-test)
 
+# Jobs Systemd Test
+
+add_executable (jobs-systemd
+	jobs-systemd.cpp)
+target_link_libraries (jobs-systemd ${GMOCK_LIBRARIES} launcher-static ${DBUSTEST_LIBRARIES})
+
+add_test(NAME jobs-systemd COMMAND jobs-systemd)
+
 # Snapd Info Test
 
 if(CURL_FOUND)
@@ -173,4 +181,9 @@ add_test (desktop-hook-test desktop-hook-test.sh)
 
 configure_file ("xmir-helper-test.in" "${CMAKE_CURRENT_BINARY_DIR}/xmir-helper-test" @ONLY)
 add_test (xmir-helper-test xmir-helper-test)
+
+# Snappy XMir Wrapper Test
+
+configure_file("snappy-xmir-test.sh.in" "${CMAKE_CURRENT_BINARY_DIR}/snappy-xmir-test.sh" @ONLY) 
+add_test (NAME snappy-xmir-test COMMAND ${CMAKE_CURRENT_BINARY_DIR}/snappy-xmir-test.sh)
 
