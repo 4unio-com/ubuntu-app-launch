@@ -87,11 +87,11 @@ main (int argc, char * argv[])
 
 	if (fork() == 0) {
 		/* XMir start here */
-		/* GOAL: /snap/bin/unity8-session.xmir-helper $appid libertine-launch /snap/unity8-session/current/usr/bin/snappy-xmir-envvars socketname */
+		/* GOAL: /snap/bin/unity8-session.xmir-launch $appid libertine-launch /snap/unity8-session/current/usr/bin/snappy-xmir-envvars socketname */
 
 		char * snappyhelper = getenv("UBUNTU_APP_LAUNCH_SNAPPY_XMIR_HELPER");
 		if (snappyhelper == NULL) {
-			snappyhelper = "xmir-helper";
+			snappyhelper = "xmir-launch";
 		}
 
 		char * libertinelaunch = getenv("UBUNTU_APP_LAUNCH_LIBERTINE_LAUNCH");
@@ -112,7 +112,7 @@ main (int argc, char * argv[])
 			NULL
 		};
 
-		printf("Executing xmir-helper on PID: %d\n", getpid());
+		printf("Executing xmir-launch on PID: %d\n", getpid());
 
 		fflush(stdout);
 

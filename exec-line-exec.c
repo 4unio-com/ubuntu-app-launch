@@ -144,7 +144,7 @@ main (int argc, char * argv[])
 	if (g_getenv("MIR_SOCKET") != NULL && g_strcmp0(g_getenv("APP_XMIR_ENABLE"), "1") == 0) {
 		g_debug("XMir Launch being used");
 
-		/* xmir-helper $(APP_ID) $(COMMAND) */
+		/* xmir-launch $(APP_ID) $(COMMAND) */
 		const gchar * appid = g_getenv("APP_ID");
 		g_array_prepend_val(newargv, appid);
 
