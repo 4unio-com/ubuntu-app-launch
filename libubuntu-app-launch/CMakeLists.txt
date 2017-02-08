@@ -65,7 +65,6 @@ jobs-upstart.cpp
 set(LAUNCHER_SOURCES
 ubuntu-app-launch.cpp
 second-exec-core.c
-ubuntu-app-launch-trace.c
 app-info.c
 )
 
@@ -84,6 +83,7 @@ foreach(FORMATFILE ${LAUNCHER_CPP_SOURCES} ${LAUNCHER_SOURCES} ${LAUNCHER_HEADER
 endforeach()
 
 set(LAUNCHER_GEN_SOURCES
+ubuntu-app-launch-trace.c
 )
 
 add_gdbus_codegen_with_namespace(LAUNCHER_GEN_SOURCES proxy-socket-demangler com.canonical.UbuntuAppLaunch. proxy ${CMAKE_SOURCE_DIR}/data/com.canonical.UbuntuAppLaunch.SocketDemangler.xml)
