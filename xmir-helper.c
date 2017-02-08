@@ -26,94 +26,90 @@
 #include <sys/socket.h>
 #include <signal.h>
 
-void
-sigchild_handler (int signal)
+void sigchild_handler(int signal)
 {
-	fprintf(stderr, "XMir has closed unexpectedly\n");
-	exit(EXIT_FAILURE);
+    fprintf(stderr, "XMir has closed unexpectedly\n");
+    exit(EXIT_FAILURE);
 }
 
-struct sigaction sigchild_action = {
-	.sa_handler = sigchild_handler,
-	.sa_flags = SA_NOCLDWAIT
-};
+struct sigaction sigchild_action = {.sa_handler = sigchild_handler, .sa_flags = SA_NOCLDWAIT};
 
-int
-main (int argc, char * argv[])
+int main(int argc, char* argv[])
 {
-	if (argc < 3) {
-		fprintf(stderr, "xmir-helper needs more arguments: xmir-helper $(appid) $(thing to exec) ... \n");
-		return EXIT_FAILURE;
-	}
+    if (argc < 3)
+    {
+        fprintf(stderr, "xmir-helper needs more arguments: xmir-helper $(appid) $(thing to exec) ... \n");
+        return EXIT_FAILURE;
+    }
 
-	/* Make nice variables for the things we need */
-	char * appid = argv[1];
-	char * xmir = getenv("UBUNTU_APP_LAUNCH_XMIR_PATH");
-	if (xmir == NULL) {
-		xmir = "/usr/bin/Xmir";
-	}
+    /* Make nice variables for the things we need */
+    char* appid = argv[1];
+    char* xmir = getenv("UBUNTU_APP_LAUNCH_XMIR_PATH");
+    if (xmir == NULL)
+    {
+        xmir = "/usr/bin/Xmir";
+    }
 
-	/* Build a socket pair to get the connection back from XMir */
-	int sockets[2];
-	if (socketpair(AF_LOCAL, SOCK_STREAM, 0, sockets) != 0) {
-		fprintf(stderr, "Unable to create socketpair for communicating with XMir\n");
-		return EXIT_FAILURE;
-	}
+    /* Build a socket pair to get the connection back from XMir */
+    int sockets[2];
+    if (socketpair(AF_LOCAL, SOCK_STREAM, 0, sockets) != 0)
+    {
+        fprintf(stderr, "Unable to create socketpair for communicating with XMir\n");
+        return EXIT_FAILURE;
+    }
 
-	/* Give them nice names, the compiler will optimize out */
-	int xmirsocket = sockets[0];
-	int helpersocket = sockets[1];
+    /* Give them nice names, the compiler will optimize out */
+    int xmirsocket = sockets[0];
+    int helpersocket = sockets[1];
 
-	/* Watch for the child dying */
-	if (sigaction(SIGCHLD, &sigchild_action, NULL) != 0) {
-		fprintf(stderr, "Unable to setup child signal handler\n");
-		return EXIT_FAILURE;
-	}
+    /* Watch for the child dying */
+    if (sigaction(SIGCHLD, &sigchild_action, NULL) != 0)
+    {
+        fprintf(stderr, "Unable to setup child signal handler\n");
+        return EXIT_FAILURE;
+    }
 
-	/* Start XMir */
-	if (fork() == 0) {
-		/* XMir start here */
-		/* GOAL: XMir -displayfd ${xmirsocket} -mir ${appid} */
-		char socketbuf[16] = {0};
-		snprintf(socketbuf, 16, "%d", xmirsocket);
+    /* Start XMir */
+    if (fork() == 0)
+    {
+        /* XMir start here */
+        /* GOAL: XMir -displayfd ${xmirsocket} -mir ${appid} */
+        char socketbuf[16] = {0};
+        snprintf(socketbuf, 16, "%d", xmirsocket);
 
-		char * xmirexec[6] = {
-			xmir,
-			"-displayfd",
-			socketbuf,
-			"-mir",
-			appid,
-			NULL
-		};
+        char* xmirexec[6] = {xmir, "-displayfd", socketbuf, "-mir", appid, NULL};
 
-		printf("Executing XMir on PID: %d", getpid());
+        printf("Executing XMir on PID: %d", getpid());
 
-		return execv(xmir, xmirexec);
-	}
+        return execv(xmir, xmirexec);
+    }
 
-	/* Wait to get the display number from XMir */
-	char readbuf[16] = {0};
-	if (read(helpersocket, readbuf, 16) == 0) {
-		fprintf(stderr, "Not reading anything from XMir\n");
-		return 1;
-	}
+    /* Wait to get the display number from XMir */
+    char readbuf[16] = {0};
+    if (read(helpersocket, readbuf, 16) == 0)
+    {
+        fprintf(stderr, "Not reading anything from XMir\n");
+        return 1;
+    }
 
-	int i;
-	for (i = 0; i < sizeof(readbuf); i++) {
-		if (readbuf[i] == '\n') {
-			readbuf[i] = '\0';
-			break;
-		}
-	}
+    int i;
+    for (i = 0; i < sizeof(readbuf); i++)
+    {
+        if (readbuf[i] == '\n')
+        {
+            readbuf[i] = '\0';
+            break;
+        }
+    }
 
-	char displaynumber[16] = {0};
-	snprintf(displaynumber, 16, ":%s", readbuf);
+    char displaynumber[16] = {0};
+    snprintf(displaynumber, 16, ":%s", readbuf);
 
-	/* Set up the display variable */
-	setenv("DISPLAY", displaynumber, 1);
+    /* Set up the display variable */
+    setenv("DISPLAY", displaynumber, 1);
 
-	/* Now that we have everything setup, we can execute */
-	char ** nargv = &argv[2];
-	int execret = execvp(nargv[0], nargv);
-	return execret;
+    /* Now that we have everything setup, we can execute */
+    char** nargv = &argv[2];
+    int execret = execvp(nargv[0], nargv);
+    return execret;
 }

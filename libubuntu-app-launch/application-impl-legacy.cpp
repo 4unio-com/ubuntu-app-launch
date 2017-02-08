@@ -58,7 +58,8 @@ Legacy::Legacy(const AppID::AppName& appname, const std::shared_ptr<Registry>& r
     auto rootenv = g_getenv("UBUNTU_APP_LAUNCH_LEGACY_ROOT");
     if (rootenv != nullptr && /* Check that we have an alternate root available */
         g_str_has_prefix(_basedir.c_str(), rootenv))
-    { /* And check that we found this in that root */
+    {
+        /* And check that we found this in that root */
         rootDir = rootenv;
     }
 
