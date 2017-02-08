@@ -32,6 +32,10 @@ include(UseGdbusCodegen)
 include(UseConstantBuilder)
 include(UseLttngGenTp)
 
+# Include code formatting tools
+set_property(GLOBAL PROPERTY FORMAT_SOURCES)
+include(FormatCode)
+
 # Workaround for libexecdir on debian
 if (EXISTS "/etc/debian_version") 
   set(CMAKE_INSTALL_LIBEXECDIR ${CMAKE_INSTALL_LIBDIR})
@@ -119,6 +123,9 @@ add_definitions( -DSNAPPY_XMIR="${CMAKE_INSTALL_FULL_BINDIR}/snappy-xmir" )
 
 add_library(helpers STATIC helpers.c helpers-shared.c)
 target_link_libraries(helpers ${GIO2_LIBRARIES} ${JSONGLIB_LIBRARIES} ${CLICK_LIBRARIES} ${WHOOPSIE_LIBRARIES})
+set_property(GLOBAL APPEND PROPERTY FORMAT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/helpers.c")
+set_property(GLOBAL APPEND PROPERTY FORMAT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/helpers.h")
+set_property(GLOBAL APPEND PROPERTY FORMAT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/helpers-shared.c")
 
 ####################
 # desktop-hook
@@ -128,6 +135,7 @@ add_executable(desktop-hook desktop-hook.c)
 set_target_properties(desktop-hook PROPERTIES OUTPUT_NAME "desktop-hook")
 target_link_libraries(desktop-hook helpers ${CLICK_LIBRARIES} ${WHOOPSIE_LIBRARIES})
 install(TARGETS desktop-hook RUNTIME DESTINATION "${pkglibexecdir}")
+set_property(GLOBAL APPEND PROPERTY FORMAT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/desktop-hook.c")
 
 ####################
 # exec-line-exec
@@ -139,6 +147,7 @@ add_executable(exec-line-exec exec-line-exec.c "${CMAKE_CURRENT_BINARY_DIR}/exec
 set_target_properties(exec-line-exec PROPERTIES OUTPUT_NAME "exec-line-exec")
 target_link_libraries(exec-line-exec helpers ${LTTNG_LIBRARIES})
 install(TARGETS exec-line-exec RUNTIME DESTINATION "${pkglibexecdir}")
+set_property(GLOBAL APPEND PROPERTY FORMAT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/exec-line-exec.c")
 
 ####################
 # zg-report-app
@@ -148,6 +157,7 @@ add_executable(zg-report-app zg-report-app.c)
 set_target_properties(zg-report-app PROPERTIES OUTPUT_NAME "zg-report-app")
 target_link_libraries(zg-report-app ubuntu-launcher ${ZEITGEIST_LIBRARIES} ${GOBJECT2_LIBRARIES} ${GLIB2_LIBRARIES})
 install(TARGETS zg-report-app RUNTIME DESTINATION "${pkglibexecdir}")
+set_property(GLOBAL APPEND PROPERTY FORMAT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/zg-report-app.c")
 
 ####################
 # application-job
@@ -157,6 +167,7 @@ add_executable(application-job application-job.c)
 set_target_properties(application-job PROPERTIES OUTPUT_NAME "application-job")
 target_link_libraries(application-job ubuntu-launcher)
 install(TARGETS application-job RUNTIME DESTINATION "${pkglibexecdir}")
+set_property(GLOBAL APPEND PROPERTY FORMAT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/application-job.c")
 
 ####################
 # application-failed
@@ -166,6 +177,7 @@ add_executable(application-failed application-failed.c)
 set_target_properties(application-failed PROPERTIES OUTPUT_NAME "application-failed")
 target_link_libraries(application-failed ${GIO2_LIBRARIES})
 install(TARGETS application-failed RUNTIME DESTINATION "${pkglibexecdir}")
+set_property(GLOBAL APPEND PROPERTY FORMAT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/application-failed.c")
 
 ####################
 # xmir-helper
@@ -174,6 +186,7 @@ install(TARGETS application-failed RUNTIME DESTINATION "${pkglibexecdir}")
 add_executable(xmir-helper xmir-helper.c)
 set_target_properties(xmir-helper PROPERTIES OUTPUT_NAME "xmir-helper")
 install(TARGETS xmir-helper RUNTIME DESTINATION "${pkglibexecdir}")
+set_property(GLOBAL APPEND PROPERTY FORMAT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/xmir-helper.c")
 
 ####################
 # untrusted-helper-type-end
@@ -183,6 +196,7 @@ add_executable(untrusted-helper-type-end untrusted-helper-type-end.c)
 set_target_properties(untrusted-helper-type-end PROPERTIES OUTPUT_NAME "untrusted-helper-type-end")
 target_link_libraries(untrusted-helper-type-end ubuntu-launcher)
 install(TARGETS untrusted-helper-type-end RUNTIME DESTINATION "${pkglibexecdir}")
+set_property(GLOBAL APPEND PROPERTY FORMAT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/untrusted-helper-type-end.c")
 
 ####################
 # cgroup-reap-all
@@ -192,6 +206,7 @@ add_executable(cgroup-reap-all cgroup-reap-all.c)
 set_target_properties(cgroup-reap-all PROPERTIES OUTPUT_NAME "cgroup-reap-all")
 target_link_libraries(cgroup-reap-all helpers)
 install(TARGETS cgroup-reap-all RUNTIME DESTINATION "${pkglibexecdir}")
+set_property(GLOBAL APPEND PROPERTY FORMAT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/cgroup-reap-all.c")
 
 ####################
 # oom-adjust-setuid-helper
@@ -200,6 +215,7 @@ install(TARGETS cgroup-reap-all RUNTIME DESTINATION "${pkglibexecdir}")
 add_executable(oom-adjust-setuid-helper oom-adjust-setuid-helper.c)
 set_target_properties(oom-adjust-setuid-helper PROPERTIES OUTPUT_NAME "oom-adjust-setuid-helper")
 install(TARGETS oom-adjust-setuid-helper RUNTIME DESTINATION "${pkglibexecdir}")
+set_property(GLOBAL APPEND PROPERTY FORMAT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/oom-adjust-setuid-helper.c")
 
 ####################
 # socket-demangler
@@ -209,6 +225,7 @@ add_executable(socket-demangler-helper socket-demangler.c)
 set_target_properties(socket-demangler-helper PROPERTIES OUTPUT_NAME "socket-demangler")
 target_link_libraries(socket-demangler-helper ${GIO2_LIBRARIES})
 install(TARGETS socket-demangler-helper RUNTIME DESTINATION "${pkglibexecdir}")
+set_property(GLOBAL APPEND PROPERTY FORMAT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/socket-demangler.c")
 
 ####################
 # snappy-xmir
@@ -279,3 +296,12 @@ ENABLE_COVERAGE_REPORT(
   FILTER
   	${filter-list}
 )
+
+##
+## Do formatting
+##
+
+get_property(FORMAT_SOURCES_LOCAL GLOBAL PROPERTY FORMAT_SOURCES)
+add_formatcode_target(${FORMAT_SOURCES_LOCAL} STYLE_NAME unity-api)
+#add_formatcode_test(${FORMAT_SOURCES_LOCAL} STYLE_NAME unity-api)
+
