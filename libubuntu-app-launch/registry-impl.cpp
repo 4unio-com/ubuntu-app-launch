@@ -37,7 +37,9 @@ Registry::Impl::Impl(Registry* registry)
                  jobs.reset();
 
                  if (_dbus)
+                 {
                      g_dbus_connection_flush_sync(_dbus.get(), nullptr, nullptr);
+                 }
                  _dbus.reset();
              })
     , _registry{registry}
@@ -159,7 +161,9 @@ std::shared_ptr<JsonObject> Registry::Impl::getClickManifest(const std::string& 
     });
 
     if (!retval)
+    {
         throw std::runtime_error("Unable to get Click manifest for package: " + package);
+    }
 
     return retval;
 }

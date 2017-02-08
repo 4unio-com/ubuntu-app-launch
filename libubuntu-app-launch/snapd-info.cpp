@@ -67,7 +67,7 @@ Info::Info()
 
     \param package Name of the package to look for
 */
-std::shared_ptr<Info::PkgInfo> Info::pkgInfo(const AppID::Package &package) const
+std::shared_ptr<Info::PkgInfo> Info::pkgInfo(const AppID::Package& package) const
 {
     if (!snapdExists)
     {
@@ -91,7 +91,7 @@ std::shared_ptr<Info::PkgInfo> Info::pkgInfo(const AppID::Package &package) cons
         /******************************************/
         /* Validation of the object we got        */
         /******************************************/
-        for (const auto &member : {"apps"})
+        for (const auto& member : {"apps"})
         {
             if (!json_object_has_member(snapobject, member))
             {
@@ -99,7 +99,7 @@ std::shared_ptr<Info::PkgInfo> Info::pkgInfo(const AppID::Package &package) cons
             }
         }
 
-        for (const auto &member : {"name", "status", "revision", "type", "version"})
+        for (const auto& member : {"name", "status", "revision", "type", "version"})
         {
             if (!json_object_has_member(snapobject, member))
             {
@@ -168,7 +168,7 @@ std::shared_ptr<Info::PkgInfo> Info::pkgInfo(const AppID::Package &package) cons
 
         return pkgstruct;
     }
-    catch (std::runtime_error &e)
+    catch (std::runtime_error& e)
     {
         g_debug("Unable to get snap information for '%s': %s", package.value().c_str(), e.what());
         return {};
@@ -183,9 +183,9 @@ std::shared_ptr<Info::PkgInfo> Info::pkgInfo(const AppID::Package &package) cons
     \param nmemb number of blocks
     \param userdata our local vector to store things in
 */
-static size_t snapd_writefunc(char *ptr, size_t size, size_t nmemb, void *userdata)
+static size_t snapd_writefunc(char* ptr, size_t size, size_t nmemb, void* userdata)
 {
-    auto data = static_cast<std::vector<char> *>(userdata);
+    auto data = static_cast<std::vector<char>*>(userdata);
     data->insert(data->end(), ptr, ptr + (size * nmemb));
     return size * nmemb;
 }
@@ -197,10 +197,10 @@ static size_t snapd_writefunc(char *ptr, size_t size, size_t nmemb, void *userda
 
     \param endpoint End of the URL to pass to snapd
 */
-std::shared_ptr<JsonNode> Info::snapdJson(const std::string &endpoint) const
+std::shared_ptr<JsonNode> Info::snapdJson(const std::string& endpoint) const
 {
     /* Setup the CURL connection and suck some data */
-    CURL *curl = curl_easy_init();
+    CURL* curl = curl_easy_init();
     if (curl == nullptr)
     {
         throw std::runtime_error("Unable to create new cURL connection");
@@ -238,8 +238,8 @@ std::shared_ptr<JsonNode> Info::snapdJson(const std::string &endpoint) const
     curl_easy_cleanup(curl);
 
     /* Cool, we have data */
-    auto parser = std::shared_ptr<JsonParser>(json_parser_new(), [](JsonParser *parser) { g_clear_object(&parser); });
-    GError *error = nullptr;
+    auto parser = std::shared_ptr<JsonParser>(json_parser_new(), [](JsonParser* parser) { g_clear_object(&parser); });
+    GError* error = nullptr;
     json_parser_load_from_data(parser.get(), /* parser */
                                data.data(),  /* array */
                                data.size(),  /* size */
@@ -261,7 +261,7 @@ std::shared_ptr<JsonNode> Info::snapdJson(const std::string &endpoint) const
     }
 
     /* Check members */
-    for (const auto &member : {"status-code", "result"})
+    for (const auto& member : {"status-code", "result"})
     {
         if (!json_object_has_member(rootobj, member))
         {
@@ -269,7 +269,7 @@ std::shared_ptr<JsonNode> Info::snapdJson(const std::string &endpoint) const
         }
     }
 
-    for (const auto &member : {"status", "type"})
+    for (const auto& member : {"status", "type"})
     {
         if (!json_object_has_member(rootobj, member))
         {
@@ -318,7 +318,7 @@ std::shared_ptr<JsonNode> Info::snapdJson(const std::string &endpoint) const
 
     \param plugfunc Function to execute on each plug
 */
-void Info::forAllPlugs(std::function<void(JsonObject *plugobj)> plugfunc) const
+void Info::forAllPlugs(std::function<void(JsonObject* plugobj)> plugfunc) const
 {
     if (!snapdExists)
     {
@@ -332,7 +332,7 @@ void Info::forAllPlugs(std::function<void(JsonObject *plugobj)> plugfunc) const
         throw std::runtime_error("Interfaces result isn't an object: " + Registry::Impl::printJson(interfacesnode));
     }
 
-    for (const auto &member : {"plugs", "slots"})
+    for (const auto& member : {"plugs", "slots"})
     {
         if (!json_object_has_member(interface, member))
         {
@@ -346,7 +346,7 @@ void Info::forAllPlugs(std::function<void(JsonObject *plugobj)> plugfunc) const
         auto ifaceobj = json_array_get_object_element(plugarray, i);
         try
         {
-            for (const auto &member : {"snap", "interface", "apps"})
+            for (const auto& member : {"snap", "interface", "apps"})
             {
                 if (!json_object_has_member(ifaceobj, member))
                 {
@@ -356,7 +356,7 @@ void Info::forAllPlugs(std::function<void(JsonObject *plugobj)> plugfunc) const
 
             plugfunc(ifaceobj);
         }
-        catch (std::runtime_error &e)
+        catch (std::runtime_error& e)
         {
             /* We'll check the others even if one is bad */
             // g_debug("Malformed inteface instance: %s", e.what());
@@ -371,14 +371,14 @@ void Info::forAllPlugs(std::function<void(JsonObject *plugobj)> plugfunc) const
 
     \param in_interface Which interface to get the set of apps for
 */
-std::set<AppID> Info::appsForInterface(const std::string &in_interface) const
+std::set<AppID> Info::appsForInterface(const std::string& in_interface) const
 {
     bool interfacefound = false;
     std::set<AppID> appids;
 
     try
     {
-        forAllPlugs([this, &interfacefound, &appids, in_interface](JsonObject *ifaceobj) {
+        forAllPlugs([this, &interfacefound, &appids, in_interface](JsonObject* ifaceobj) {
             std::string interfacename = json_object_get_string_member(ifaceobj, "interface");
             if (interfacename != in_interface)
             {
@@ -418,7 +418,7 @@ std::set<AppID> Info::appsForInterface(const std::string &in_interface) const
             g_debug("Unable to find information on interface '%s'", in_interface.c_str());
         }
     }
-    catch (std::runtime_error &e)
+    catch (std::runtime_error& e)
     {
         g_warning("Unable to get interface information: %s", e.what());
     }
@@ -430,14 +430,14 @@ std::set<AppID> Info::appsForInterface(const std::string &in_interface) const
 
     \param appid AppID to search for
 */
-std::set<std::string> Info::interfacesForAppId(const AppID &appid) const
+std::set<std::string> Info::interfacesForAppId(const AppID& appid) const
 {
 
     std::set<std::string> interfaces;
 
     try
     {
-        forAllPlugs([&interfaces, appid](JsonObject *ifaceobj) {
+        forAllPlugs([&interfaces, appid](JsonObject* ifaceobj) {
             auto snapname = json_object_get_string_member(ifaceobj, "snap");
             if (snapname != appid.package.value())
             {
@@ -463,7 +463,7 @@ std::set<std::string> Info::interfacesForAppId(const AppID &appid) const
             }
         });
     }
-    catch (std::runtime_error &e)
+    catch (std::runtime_error& e)
     {
         g_warning("Unable to get interface information: %s", e.what());
     }

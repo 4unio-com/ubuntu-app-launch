@@ -657,9 +657,13 @@ std::string Base::pidToOomPath(pid_t pid)
         /* Set by the test suite, probably not anyone else */
         auto envvar = g_getenv("UBUNTU_APP_LAUNCH_OOM_PROC_PATH");
         if (G_LIKELY(envvar == nullptr))
+        {
             procpath = "/proc";
+        }
         else
+        {
             procpath = envvar;
+        }
     }
 
     gchar* gpath = g_build_filename(procpath.c_str(), std::to_string(pid).c_str(), "oom_score_adj", nullptr);
@@ -711,13 +715,19 @@ void Base::oomValueToPid(pid_t pid, const oom::Score oomvalue)
     fclose(adj);
 
     if (writesize == oomstr.size())
+    {
         return;
+    }
 
     if (writeerr != 0)
+    {
         g_warning("Unable to set OOM value for '%d' to '%s': %s", int(pid), oomstr.c_str(), strerror(writeerr));
+    }
     else
-        /* No error, but yet, wrong size. Not sure, what could cause this. */
+    /* No error, but yet, wrong size. Not sure, what could cause this. */
+    {
         g_debug("Unable to set OOM value for '%d' to '%s': Wrote %d bytes", int(pid), oomstr.c_str(), int(writesize));
+    }
 }
 
 /** Use a setuid root helper for setting the oom value of

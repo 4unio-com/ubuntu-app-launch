@@ -21,7 +21,7 @@
 #include "libubuntu-app-launch/registry.h"
 #include <iostream>
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     if (argc != 2)
     {
@@ -41,9 +41,11 @@ int main(int argc, char *argv[])
     {
         app = ubuntu::app_launch::Application::create(appid, ubuntu::app_launch::Registry::getDefault());
         if (!app)
+        {
             throw std::runtime_error("Application object is nullptr");
+        }
     }
-    catch (std::runtime_error &e)
+    catch (std::runtime_error& e)
     {
         std::cerr << "Unable to find application for AppID: " << argv[1] << std::endl;
         exit(1);
@@ -71,7 +73,7 @@ int main(int argc, char *argv[])
         std::cout << "Rotates:          " << info->rotatesWindowContents().value() << std::endl;
         std::cout << "Ubuntu Lifecycle: " << info->supportsUbuntuLifecycle().value() << std::endl;
     }
-    catch (std::runtime_error &e)
+    catch (std::runtime_error& e)
     {
         std::cerr << "Unable to parse Application info for application '" << std::string(appid) << "': " << e.what()
                   << std::endl;

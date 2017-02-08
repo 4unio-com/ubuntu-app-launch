@@ -899,7 +899,9 @@ TEST_F(LibUAL, StartStopObserver)
         [&start_count, &start_appid](std::shared_ptr<ubuntu::app_launch::Application> app,
                                      std::shared_ptr<ubuntu::app_launch::Application::Instance> instance) {
             if (!start_appid.empty() && !(start_appid == app->appId()))
+            {
                 return;
+            }
 
             start_count++;
         });
@@ -908,7 +910,9 @@ TEST_F(LibUAL, StartStopObserver)
         [&stop_count, &stop_appid](std::shared_ptr<ubuntu::app_launch::Application> app,
                                    std::shared_ptr<ubuntu::app_launch::Application::Instance> instance) {
             if (!stop_appid.empty() && !(stop_appid == app->appId()))
+            {
                 return;
+            }
 
             stop_count++;
         });

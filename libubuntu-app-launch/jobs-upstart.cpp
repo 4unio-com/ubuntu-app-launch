@@ -901,7 +901,9 @@ core::Signal<const std::shared_ptr<Application>&, const std::shared_ptr<Applicat
 void Upstart::initCGManager()
 {
     if (cgManager_)
+    {
         return;
+    }
 
     auto registry = registry_.lock();
 
@@ -1177,7 +1179,9 @@ std::list<std::shared_ptr<Application>> Upstart::runningApps()
     for (auto instance : instances)
     {
         if (!instance.empty())
+        {
             instanceset.insert(instance);
+        }
     }
 
     /* Add in the click instances */
