@@ -44,7 +44,9 @@ EnvHandle * env_handle_start     (void);
 void        env_handle_add       (EnvHandle *     handle,
                                   const gchar *   variable,
                                   const gchar *   value);
+#ifdef LIBUPSTART_FOUND
 void        env_handle_finish    (EnvHandle *     handle);
+#endif
 
 typedef struct _handshake_t handshake_t;
 handshake_t * starting_handshake_start   (const gchar *   app_id,
@@ -52,11 +54,13 @@ handshake_t * starting_handshake_start   (const gchar *   app_id,
                                           int timeout_s);
 void      starting_handshake_wait        (handshake_t *   handshake);
 
+#ifdef CGMANAGER_FOUND
 GDBusConnection * cgroup_manager_connection (void);
 void              cgroup_manager_unref (GDBusConnection * cgroup_manager);
 GList *   pids_from_cgroup       (GDBusConnection * cgmanager,
                                   const gchar *   jobname,
                                   const gchar *   instancename);
+#endif
 
 gboolean   verify_keyfile        (GKeyFile *    inkeyfile,
                                   const gchar * desktop);

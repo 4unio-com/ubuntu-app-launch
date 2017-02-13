@@ -58,9 +58,14 @@ jobs-base.h
 jobs-base.cpp
 jobs-systemd.h
 jobs-systemd.cpp
+)
+
+if(LIBUPSTART_FOUND)
+list(APPEND LAUNCHER_CPP_SOURCES
 jobs-upstart.h
 jobs-upstart.cpp
 )
+endif()
 
 set(LAUNCHER_SOURCES
 ubuntu-app-launch.cpp

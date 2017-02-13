@@ -19,7 +19,9 @@
 
 #include "helpers.h"
 #include <gio/gio.h>
+#ifdef CGMANAGER_FOUND
 #include <cgmanager/cgmanager.h>
+#endif
 
 #include "ual-tracepoint.h"
 
@@ -97,6 +99,7 @@ keyfile_for_appid (const gchar * appid, gchar ** desktopfile)
 	return keyfile;
 }
 
+#ifdef CGMANAGER_FOUND
 /* Structure to handle data for the cgmanager connection
    set of callbacks */
 typedef struct {
@@ -292,6 +295,7 @@ pids_from_cgroup (GDBusConnection * cgmanager, const gchar * jobname, const gcha
 
 	return retval;
 }
+#endif
 
 /* Global markers for the ual_tracepoint macro */
 int _ual_tracepoints_env_checked = 0;

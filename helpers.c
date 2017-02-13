@@ -19,7 +19,9 @@
 
 #include <json-glib/json-glib.h>
 #include <click.h>
+#ifdef LIBUPSTART_FOUND
 #include <upstart.h>
+#endif
 #include "helpers.h"
 
 /* Take an app ID and validate it and then break it up
@@ -584,6 +586,7 @@ env_handle_add (EnvHandle * handle, const gchar * variable, const gchar * value)
 	g_variant_builder_add_value((GVariantBuilder*)handle, env);
 }
 
+#ifdef LIBUPSTART_FOUND
 void
 env_handle_finish (EnvHandle * handle)
 {
@@ -637,3 +640,4 @@ env_handle_finish (EnvHandle * handle)
 
 	g_object_unref(bus);
 }
+#endif

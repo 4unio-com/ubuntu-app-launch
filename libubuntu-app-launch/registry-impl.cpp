@@ -20,7 +20,6 @@
 #include "registry-impl.h"
 #include "application-icon-finder.h"
 #include <regex>
-#include <upstart.h>
 
 namespace ubuntu
 {

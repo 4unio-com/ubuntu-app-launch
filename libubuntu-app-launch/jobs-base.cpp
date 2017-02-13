@@ -25,7 +25,9 @@
 #include "application-impl-base.h"
 #include "jobs-base.h"
 #include "jobs-systemd.h"
+#ifdef LIBUPSTART_FOUND
 #include "jobs-upstart.h"
+#endif
 #include "registry-impl.h"
 
 namespace ubuntu
@@ -67,16 +69,20 @@ std::shared_ptr<Base> Base::determineFactory(std::shared_ptr<Registry> registry)
        by systemd so we're in good shape if we have one. We're using
        the path instead of the RUNTIME variable because we want to work
        around the case of being relocated by the snappy environment */
+#ifdef LIBUPSTART_FOUND
     if (g_file_test(SystemD::userBusPath().c_str(), G_FILE_TEST_EXISTS))
     {
+#endif
         g_debug("Building a systemd jobs manager");
         return std::make_shared<jobs::manager::SystemD>(registry);
+#ifdef LIBUPSTART_FOUND	
     }
     else
     {
         g_debug("Building an Upstart jobs manager");
         return std::make_shared<jobs::manager::Upstart>(registry);
     }
+#endif
 }
 
 const std::set<std::string>& Base::getAllJobs() const
