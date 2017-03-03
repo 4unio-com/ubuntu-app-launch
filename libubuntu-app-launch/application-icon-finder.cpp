@@ -29,6 +29,8 @@ namespace
 constexpr auto ICONS_DIR = "/icons";
 constexpr auto HICOLOR_THEME_DIR = "/icons/hicolor";
 constexpr auto HUMANITY_THEME_DIR = "/icons/Humanity";
+constexpr auto ADWAITA_THEME_DIR = "/icons/Adwaita";
+constexpr auto GNOME_THEME_DIR = "/icons/gnome";
 constexpr auto THEME_INDEX_FILE = "index.theme";
 constexpr auto APPLICATIONS_TYPE = "Applications";
 constexpr auto SIZE_PROPERTY = "Size";
@@ -346,6 +348,18 @@ std::list<IconFinder::ThemeSubdirectory> IconFinder::getSearchPaths(const std::s
     auto humanityIcons = iconsFromThemePath(humanityDir);
     iconPaths.splice(iconPaths.end(), humanityIcons);
     g_free(humanityDir);
+
+    /* Icons from the Adwaita theme (gtk looks here by default, so lets match its behavior) */
+    auto adwaitaDir = g_build_filename(basePath.c_str(), ADWAITA_THEME_DIR, nullptr);
+    auto adwaitaIcons = iconsFromThemePath(adwaitaDir);
+    iconPaths.splice(iconPaths.end(), adwaitaIcons);
+    g_free(adwaitaDir);
+
+    /* Icons from the gnome theme (gtk looks here by default, so lets match its behavior) */
+    auto gnomeDir = g_build_filename(basePath.c_str(), GNOME_THEME_DIR, nullptr);
+    auto gnomeIcons = iconsFromThemePath(gnomeDir);
+    iconPaths.splice(iconPaths.end(), gnomeIcons);
+    g_free(gnomeDir);
 
     /* Add root icons directory as potential path */
     auto iconsPath = g_build_filename(basePath.c_str(), ICONS_DIR, nullptr);
