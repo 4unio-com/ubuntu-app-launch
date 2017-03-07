@@ -148,6 +148,12 @@ install(
 	DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/libubuntu-app-launch-${API_VERSION}/ubuntu-app-launch"
 )
 
+# Mock headers
+install(
+  DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/mock
+  DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/libubuntu-app-launch-${API_VERSION}/ubuntu-app-launch"
+)
+
 install(
 	TARGETS ubuntu-launcher
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}

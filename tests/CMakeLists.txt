@@ -43,6 +43,12 @@ add_executable (libual-test
 	mir-mock.cpp)
 target_link_libraries (libual-test gtest_main ${GTEST_MAIN_LIBRARIES} ${LIBUPSTART_LIBRARIES} ${DBUSTEST_LIBRARIES} ubuntu-launcher)
 
+add_executable (libual-mocks-test
+  libual-mocks-test.cpp
+  )
+target_link_libraries (libual-mocks-test ${GMOCK_LIBRARIES} ${LIBUPSTART_LIBRARIES} ${DBUSTEST_LIBRARIES} ubuntu-launcher)
+add_test(libual-mocks-test libual-mocks-test)
+
 add_executable (libual-cpp-test
 	libual-cpp-test.cc
 	${CMAKE_SOURCE_DIR}/libubuntu-app-launch/glib-thread.cpp
