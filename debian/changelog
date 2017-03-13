@@ -1,3 +1,10 @@
+ubuntu-app-launch (0.10+17.04.20170313-0ubuntu1) zesty; urgency=medium
+
+  * Use the "mir" interface (not the "unity8" interface) to decide if an
+    app supports Mir or not.
+
+ -- Michael Terry <michael.terry@canonical.com>  Mon, 13 Mar 2017 13:42:30 +0000
+
 ubuntu-app-launch (0.10+17.04.20170307.1-0ubuntu1) zesty; urgency=medium
 
   * XMir by default for Legacy apps (LP: #1668429)
