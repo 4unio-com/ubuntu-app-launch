@@ -21,9 +21,13 @@
 #include "libubuntu-app-launch/registry.h"
 #include <csignal>
 #include <future>
+#include <glib.h>
 #include <iostream>
 
+/* Globals */
 ubuntu::app_launch::AppID global_appid;
+std::shared_ptr<ubuntu::app_launch::Application> global_app;
+std::shared_ptr<ubuntu::app_launch::Application::Instance> global_inst;
 std::promise<int> retval;
 
 int main(int argc, char* argv[])
@@ -50,8 +54,7 @@ int main(int argc, char* argv[])
                 return;
             }
 
-            std::cout << "Started: " << (std::string)app->appId() << std::endl;
-            retval.set_value(EXIT_SUCCESS);
+            g_debug("Started: %s", std::string{app->appId()}.c_str());
         });
 
     ubuntu::app_launch::Registry::appFailed().connect(
@@ -63,13 +66,16 @@ int main(int argc, char* argv[])
                 return;
             }
 
-            std::cout << "Failed:  " << (std::string)app->appId() << std::endl;
+            std::cout << "Failed:  " << std::string{app->appId()} << std::endl;
             retval.set_value(EXIT_FAILURE);
         });
 
-    auto app = ubuntu::app_launch::Application::create(global_appid, ubuntu::app_launch::Registry::getDefault());
-    app->launch(urls);
+    global_app = ubuntu::app_launch::Application::create(global_appid, ubuntu::app_launch::Registry::getDefault());
+    global_inst = global_app->launch(urls);
 
-    std::signal(SIGTERM, [](int signal) -> void { retval.set_value(EXIT_SUCCESS); });
+    std::signal(SIGTERM, [](int signal) -> void {
+        global_inst->stop();
+        retval.set_value(EXIT_SUCCESS);
+    });
     return retval.get_future().get();
 }
