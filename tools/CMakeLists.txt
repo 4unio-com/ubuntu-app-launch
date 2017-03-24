@@ -135,3 +135,9 @@ add_custom_target(format-tools
     ubuntu-helper-start.cpp
     ubuntu-helper-stop.cpp
 )
+
+########################
+# Completions
+########################
+
+add_subdirectory(completions)
