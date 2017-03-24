@@ -1,0 +1,8 @@
+_have ubuntu-app-list-pids &&
+_have ubuntu-app-launch-appids &&
+_ubuntu_app_list_pids()
+{
+	local cur=${COMP_WORDS[COMP_CWORD]}
+	COMPREPLY=($(compgen -W "`ubuntu-app-launch-appids`" -- $cur))
+} &&
+complete -F _ubuntu_app_list_pids -o default ubuntu-app-list-pids

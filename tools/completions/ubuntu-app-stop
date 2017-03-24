@@ -1,0 +1,8 @@
+_have ubuntu-app-stop &&
+_have ubuntu-app-launch-appids &&
+_ubuntu_app_stop()
+{
+	local cur=${COMP_WORDS[COMP_CWORD]}
+	COMPREPLY=($(compgen -W "`ubuntu-app-launch-appids`" -- $cur))
+} &&
+complete -F _ubuntu_app_stop -o default ubuntu-app-stop
