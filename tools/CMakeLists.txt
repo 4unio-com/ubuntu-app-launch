@@ -41,7 +41,7 @@ install(TARGETS ubuntu-app-launch-appids RUNTIME DESTINATION "${CMAKE_INSTALL_FU
 
 add_executable(ubuntu-app-launch ubuntu-app-launch.cpp)
 set_target_properties(ubuntu-app-launch PROPERTIES OUTPUT_NAME "ubuntu-app-launch")
-target_link_libraries(ubuntu-app-launch ubuntu-launcher)
+target_link_libraries(ubuntu-app-launch launcher-static)
 install(TARGETS ubuntu-app-launch RUNTIME DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}")
 
 ########################

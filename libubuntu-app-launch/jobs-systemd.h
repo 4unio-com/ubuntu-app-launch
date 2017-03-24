@@ -26,7 +26,7 @@
 #include <map>
 #include <memory>
 #include <mutex>
-#include <signal-unsubscriber.h>
+#include "signal-unsubscriber.h"
 #include <unity/util/ResourcePtr.h>
 
 namespace ubuntu

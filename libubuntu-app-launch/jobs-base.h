@@ -59,6 +59,16 @@ public:
         return instance_;
     }
 
+    const std::string& getJobName()
+    {
+        return job_;
+    }
+
+    const AppID& getAppId()
+    {
+        return appId_;
+    }
+
     /* OOM Functions */
     void setOomAdjustment(const oom::Score score) override;
     const oom::Score getOomAdjustment() override;

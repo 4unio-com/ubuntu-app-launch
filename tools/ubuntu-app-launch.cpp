@@ -18,6 +18,7 @@
  */
 
 #include "libubuntu-app-launch/application.h"
+#include "libubuntu-app-launch/jobs-base.h"
 #include "libubuntu-app-launch/registry.h"
 #include <csignal>
 #include <future>
@@ -25,10 +26,37 @@
 #include <iostream>
 
 /* Globals */
+/* Needed for sigterm handler */
 ubuntu::app_launch::AppID global_appid;
-std::shared_ptr<ubuntu::app_launch::Application> global_app;
 std::shared_ptr<ubuntu::app_launch::Application::Instance> global_inst;
 std::promise<int> retval;
+
+/* Show the log file for the instance */
+class journald
+{
+    pid_t child{0};
+
+public:
+    journald(const std::shared_ptr<ubuntu::app_launch::Application::Instance>& inst)
+    {
+        auto instinternal = std::dynamic_pointer_cast<ubuntu::app_launch::jobs::instance::Base>(inst);
+        auto instname = std::string{"ubuntu-app-launch--"} + instinternal->getJobName() + "--" +
+                        std::string{instinternal->getAppId()} + "--" + instinternal->getInstanceId() + ".service";
+
+        if ((child = fork()) == 0)
+        {
+            std::array<const char*, 4> execline = {"journalctl", "--user-unit", instname.c_str(), nullptr};
+
+            execvp(execline[0], (char* const*)execline.data());
+        }
+    }
+
+    ~journald()
+    {
+        if (child)
+            kill(child, SIGTERM);
+    }
+};
 
 int main(int argc, char* argv[])
 {
@@ -70,8 +98,10 @@ int main(int argc, char* argv[])
             retval.set_value(EXIT_FAILURE);
         });
 
-    global_app = ubuntu::app_launch::Application::create(global_appid, ubuntu::app_launch::Registry::getDefault());
-    global_inst = global_app->launch(urls);
+    auto app = ubuntu::app_launch::Application::create(global_appid, ubuntu::app_launch::Registry::getDefault());
+    global_inst = app->launch(urls);
+
+    journald logging{global_inst};
 
     std::signal(SIGTERM, [](int signal) -> void {
         global_inst->stop();
