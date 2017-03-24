@@ -45,7 +45,7 @@ public:
 
         if ((child = fork()) == 0)
         {
-            std::array<const char*, 4> execline = {"journalctl", "--user-unit", instname.c_str(), nullptr};
+            std::array<const char*, 6> execline = {"journalctl", "--no-tail", "--follow", "--user-unit", instname.c_str(), nullptr};
 
             execvp(execline[0], (char* const*)execline.data());
         }
@@ -85,6 +85,17 @@ int main(int argc, char* argv[])
             g_debug("Started: %s", std::string{app->appId()}.c_str());
         });
 
+    ubuntu::app_launch::Registry::appStopped().connect(
+        [](std::shared_ptr<ubuntu::app_launch::Application> app,
+           std::shared_ptr<ubuntu::app_launch::Application::Instance> instance) {
+            if (app->appId() != global_appid)
+            {
+                return;
+            }
+
+            retval.set_value(EXIT_SUCCESS);
+        });
+
     ubuntu::app_launch::Registry::appFailed().connect(
         [](std::shared_ptr<ubuntu::app_launch::Application> app,
            std::shared_ptr<ubuntu::app_launch::Application::Instance> instance,
@@ -105,7 +116,10 @@ int main(int argc, char* argv[])
 
     std::signal(SIGTERM, [](int signal) -> void {
         global_inst->stop();
-        retval.set_value(EXIT_SUCCESS);
     });
+    std::signal(SIGQUIT, [](int signal) -> void {
+        global_inst->stop();
+    });
+
     return retval.get_future().get();
 }
