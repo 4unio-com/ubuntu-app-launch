@@ -341,6 +341,12 @@ void Info::forAllPlugs(std::function<void(JsonObject *plugobj)> plugfunc) const
     }
 
     auto plugarray = json_object_get_array_member(interface, "plugs");
+    if (plugarray == nullptr)
+    {
+        g_debug("No plugs connected on snapd");
+        return;
+    }
+
     for (unsigned int i = 0; i < json_array_get_length(plugarray); i++)
     {
         auto ifaceobj = json_array_get_object_element(plugarray, i);
