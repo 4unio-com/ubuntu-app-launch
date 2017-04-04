@@ -41,7 +41,6 @@ Package: ubuntu-app-launch
 Architecture: any
 Depends: ${shlibs:Depends},
          ${misc:Depends},
-         libertine-xmir-tools [amd64 armhf arm64 i386],
          dbus-user-session,
          zeitgeist-core,
 Replaces: upstart-app-launch
@@ -71,7 +70,7 @@ Architecture: any
 Depends: ${misc:Depends},
          ${shlibs:Depends},
          ubuntu-app-launch (= ${binary:Version}),
-         libertine-tools,
+         libertine-xmir-tools [amd64 armhf arm64 i386],
 Pre-Depends: ${misc:Pre-Depends},
 Multi-Arch: same
 Description: library for sending requests to the ubuntu app launch
