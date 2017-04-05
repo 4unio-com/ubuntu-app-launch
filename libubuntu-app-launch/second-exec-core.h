@@ -1,6 +1,5 @@
-
 /*
- * Copyright 2013 Canonical Ltd.
+ * Copyright 2013-2017 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 3, as published
@@ -16,13 +15,25 @@
  *
  * Authors:
  *     Ted Gould <ted.gould@canonical.com>
+ *     Pete Woods <pete.woods@canonical.com>
  */
 
+
+#pragma once
+
 #include <gio/gio.h>
+#include <memory>
+#include <string>
+#include <vector>
 
-G_BEGIN_DECLS
+#include "application.h"
 
-gboolean second_exec (GDBusConnection * con, GCancellable * cancel, GPid pid, const gchar * app_id, const gchar * instance_id, gchar ** appuris);
+namespace ubuntu
+{
+namespace app_launch
+{
 
-G_END_DECLS
+void second_exec (std::shared_ptr<GDBusConnection> con, std::shared_ptr<GCancellable> cancel, GPid pid, const std::string& app_id, const std::string& instance_id, const std::vector<Application::URL>& appuris);
 
+}
+}

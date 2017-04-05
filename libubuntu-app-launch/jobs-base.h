@@ -91,7 +91,6 @@ protected:
     static void oomValueToPid(pid_t pid, const oom::Score oomvalue);
     static void oomValueToPidHelper(pid_t pid, const oom::Score oomvalue);
     static std::string pidToOomPath(pid_t pid);
-    static GCharVUPtr urlsToStrv(const std::vector<Application::URL>& urls);
 };
 
 }  // namespace instance

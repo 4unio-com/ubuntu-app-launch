@@ -1053,29 +1053,6 @@ void Base::oomValueToPidHelper(pid_t pid, const oom::Score oomvalue)
     }
 }
 
-/** Reformat a C++ vector of URLs into a C GStrv of strings
-
-    \param urls Vector of URLs to make into C strings
-*/
-GCharVUPtr Base::urlsToStrv(const std::vector<Application::URL>& urls)
-{
-    if (urls.empty())
-    {
-        return GCharVUPtr(nullptr, &g_strfreev);
-    }
-
-    auto array = g_array_new(TRUE, FALSE, sizeof(gchar*));
-
-    for (auto url : urls)
-    {
-        auto str = g_strdup(url.value().c_str());
-        g_debug("Converting URL: %s", str);
-        g_array_append_val(array, str);
-    }
-
-    return unique_gcharv((gchar**)g_array_free(array, FALSE));
-}
-
 }  // namespace instance
 
 }  // namespace jobs

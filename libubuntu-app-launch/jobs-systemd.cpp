@@ -513,13 +513,12 @@ void SystemD::application_start_cb(GObject* obj, GAsyncResult* res, gpointer use
             g_debug("Remote error: %s", remote_error);
             if (g_strcmp0(remote_error, "org.freedesktop.systemd1.UnitExists") == 0)
             {
-                auto urls = instance::SystemD::urlsToStrv(data->ptr->urls_);
-                second_exec(data->bus.get(),                                     /* DBus */
-                            data->ptr->registry_->thread.getCancellable().get(), /* cancellable */
-                            data->ptr->primaryPid(),                             /* primary pid */
-                            std::string(data->ptr->appId_).c_str(),              /* appid */
-                            data->ptr->instance_.c_str(),                        /* instance */
-                            urls.get());                                         /* urls */
+                second_exec(data->bus,                                     /* DBus */
+                            data->ptr->registry_->thread.getCancellable(), /* cancellable */
+                            data->ptr->primaryPid(),                       /* primary pid */
+                            std::string(data->ptr->appId_),                /* appid */
+                            data->ptr->instance_,                          /* instance */
+                            data->ptr->urls_);                             /* urls */
             }
 
             g_free(remote_error);

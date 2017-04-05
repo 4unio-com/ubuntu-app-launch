@@ -80,7 +80,7 @@ string-util.h
 
 set(LAUNCHER_SOURCES
 ubuntu-app-launch.cpp
-second-exec-core.c
+second-exec-core.cpp
 ubuntu-app-launch-trace.c
 utils.c
 utils-shared.c
