@@ -21,6 +21,8 @@
 
 #include "app-store-base.h"
 
+#include <unity/util/GObjectMemory.h>
+
 namespace ubuntu
 {
 namespace app_launch
@@ -31,28 +33,33 @@ namespace app_store
 class Legacy : public Base
 {
 public:
-    Legacy();
+    Legacy(const std::shared_ptr<Registry::Impl>& registry);
     virtual ~Legacy();
 
     /* Discover tools */
-    virtual bool verifyPackage(const AppID::Package& package, const std::shared_ptr<Registry>& registry) override;
-    virtual bool verifyAppname(const AppID::Package& package,
-                               const AppID::AppName& appname,
-                               const std::shared_ptr<Registry>& registry) override;
-    virtual AppID::AppName findAppname(const AppID::Package& package,
-                                       AppID::ApplicationWildcard card,
-                                       const std::shared_ptr<Registry>& registry) override;
-    virtual AppID::Version findVersion(const AppID::Package& package,
-                                       const AppID::AppName& appname,
-                                       const std::shared_ptr<Registry>& registry) override;
-    virtual bool hasAppId(const AppID& appid, const std::shared_ptr<Registry>& registry) override;
+    virtual bool verifyPackage(const AppID::Package& package) override;
+    virtual bool verifyAppname(const AppID::Package& package, const AppID::AppName& appname) override;
+    virtual AppID::AppName findAppname(const AppID::Package& package, AppID::ApplicationWildcard card) override;
+    virtual AppID::Version findVersion(const AppID::Package& package, const AppID::AppName& appname) override;
+    virtual bool hasAppId(const AppID& appid) override;
 
     /* Possible apps */
-    virtual std::list<std::shared_ptr<Application>> list(const std::shared_ptr<Registry>& registry) override;
+    virtual std::list<std::shared_ptr<Application>> list() override;
 
     /* Application Creation */
-    virtual std::shared_ptr<app_impls::Base> create(const AppID& appid,
-                                                    const std::shared_ptr<Registry>& registry) override;
+    virtual std::shared_ptr<app_impls::Base> create(const AppID& appid) override;
+
+    /* Info watching */
+    virtual core::Signal<const std::shared_ptr<Application>&>& infoChanged() override;
+    virtual core::Signal<const std::shared_ptr<Application>&>& appAdded() override;
+    virtual core::Signal<const AppID&>& appRemoved() override;
+
+private:
+    std::set<std::unique_ptr<GFileMonitor, unity::util::GObjectDeleter>> monitors_;
+    std::once_flag monitorsSetup_;
+
+    void directoryChanged(GFile* file, GFileMonitorEvent type);
+    void setupMonitors();
 };
 
 }  // namespace app_store
