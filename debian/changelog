@@ -1,3 +1,12 @@
+ubuntu-app-launch (0.12+17.04.20170406-0ubuntu1) zesty; urgency=medium
+
+  [ Chris Townsend ]
+  * Remove launching Xmir and helpers apps. This is being moved into
+    Libertine and, in particular, the liberine-xmir-tools package. (LP:
+    #1638079)
+
+ -- Christopher Townsend <christopher.townsend@canonical.com>  Thu, 06 Apr 2017 19:18:35 +0000
+
 ubuntu-app-launch (0.12+17.04.20170404.2-0ubuntu1) zesty; urgency=medium
 
   [ Michael Terry ]
