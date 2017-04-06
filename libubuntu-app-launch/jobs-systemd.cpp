@@ -455,7 +455,7 @@ std::vector<std::string> SystemD::parseExec(std::list<std::pair<std::string, std
             auto xmirenv = getenv("UBUNTU_APP_LAUNCH_XMIR_HELPER");
             if (xmirenv == nullptr)
             {
-                retval.emplace(retval.begin(), XMIR_HELPER);
+                retval.emplace(retval.begin(), XMIR_LAUNCH);
             }
             else
             {

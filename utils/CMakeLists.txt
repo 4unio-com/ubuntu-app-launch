@@ -53,11 +53,3 @@ set_target_properties(snappy-xmir-envvars PROPERTIES OUTPUT_NAME "snappy-xmir-en
 # No libs, otherwise we have to worry about how to handle finding them
 install(TARGETS snappy-xmir-envvars RUNTIME DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}")
 
-####################
-# xmir-helper
-####################
-
-add_executable(xmir-helper xmir-helper.c)
-set_target_properties(xmir-helper PROPERTIES OUTPUT_NAME "xmir-helper")
-install(TARGETS xmir-helper RUNTIME DESTINATION "${pkglibexecdir}")
-
