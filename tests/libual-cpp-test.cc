@@ -44,6 +44,7 @@
 #include "snapd-mock.h"
 #include "spew-master.h"
 #include "systemd-mock.h"
+#include "test-directory.h"
 #include "zg-mock.h"
 
 #define LOCAL_SNAPD_TEST_SOCKET (SNAPD_TEST_SOCKET "-libual-cpp-test")
@@ -181,13 +182,14 @@ protected:
         /* Add in Libertine */
         libertine = std::make_shared<LibertineService>();
         dbus_test_service_add_task(service, *libertine);
-        dbus_test_service_add_task(service, libertine->waitTask());
 
         dbus_test_service_start_tasks(service);
 
         bus = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
         g_dbus_connection_set_exit_on_close(bus, FALSE);
         g_object_add_weak_pointer(G_OBJECT(bus), (gpointer*)&bus);
+
+        ASSERT_EVENTUALLY_FUNC_EQ(false, std::function<bool()>{[&] { return libertine->getUniqueName().empty(); }});
 
         registry = std::make_shared<ubuntu::app_launch::Registry>();
 
@@ -258,16 +260,16 @@ protected:
     {
         auto store = storeForHelper(appid);
 
-        ON_CALL(*store, list(testing::_))
+        ON_CALL(*store, list())
             .WillByDefault(testing::Return(std::list<std::shared_ptr<ubuntu::app_launch::Application>>{}));
 
-        auto app = std::make_shared<MockApp>(appid, registry);
-        ON_CALL(*store, create(appid, testing::_)).WillByDefault(testing::Return(app));
+        auto app = std::make_shared<MockApp>(appid, registry->impl);
+        ON_CALL(*store, create(appid)).WillByDefault(testing::Return(app));
 
         if (!instanceid.empty())
         {
             std::vector<ubuntu::app_launch::Application::URL> urls;
-            auto inst = std::make_shared<MockInst>(appid, jobtype, instanceid, urls, registry);
+            auto inst = std::make_shared<MockInst>(appid, jobtype, instanceid, urls, registry->impl);
             ON_CALL(*app, findInstance(instanceid)).WillByDefault(testing::Return(inst));
             ON_CALL(*app, launch(testing::_)).WillByDefault(testing::Return(inst));
             ON_CALL(*app, launchTest(testing::_)).WillByDefault(testing::Return(inst));
@@ -286,15 +288,13 @@ protected:
     std::shared_ptr<MockStore> storeForHelper(const ubuntu::app_launch::AppID& appid)
     {
         /* Setup a store for looking up the AppID */
-        auto store = std::make_shared<MockStore>();
+        auto store = std::make_shared<MockStore>(registry->impl);
 
-        ON_CALL(*store, verifyPackage(appid.package, testing::_)).WillByDefault(testing::Return(true));
-        ON_CALL(*store, verifyAppname(appid.package, appid.appname, testing::_)).WillByDefault(testing::Return(true));
-        ON_CALL(*store, findAppname(appid.package, testing::_, testing::_))
-            .WillByDefault(testing::Return(appid.appname));
-        ON_CALL(*store, findVersion(appid.package, appid.appname, testing::_))
-            .WillByDefault(testing::Return(appid.version));
-        ON_CALL(*store, hasAppId(appid, testing::_)).WillByDefault(testing::Return(true));
+        ON_CALL(*store, verifyPackage(appid.package)).WillByDefault(testing::Return(true));
+        ON_CALL(*store, verifyAppname(appid.package, appid.appname)).WillByDefault(testing::Return(true));
+        ON_CALL(*store, findAppname(appid.package, testing::_)).WillByDefault(testing::Return(appid.appname));
+        ON_CALL(*store, findVersion(appid.package, appid.appname)).WillByDefault(testing::Return(appid.version));
+        ON_CALL(*store, hasAppId(appid)).WillByDefault(testing::Return(true));
 
         std::list<std::shared_ptr<ubuntu::app_launch::app_store::Base>> list;
         list.push_back(store);
@@ -435,46 +435,46 @@ TEST_F(LibUAL, ApplicationPid)
 
 TEST_F(LibUAL, ApplicationId)
 {
-    auto mockstore = std::make_shared<MockStore>();
+    auto mockstore = std::make_shared<MockStore>(registry->impl);
     registry =
-        std::make_shared<RegistryMock>(std::list<std::shared_ptr<ubuntu::app_launch::app_store::Base>>{mockstore});
+        std::make_shared<RegistryMock>(std::list<std::shared_ptr<ubuntu::app_launch::app_store::Base>>{mockstore},
+                                       std::shared_ptr<ubuntu::app_launch::jobs::manager::Base>{});
 
-    EXPECT_CALL(*mockstore, verifyPackage(ubuntu::app_launch::AppID::Package::from_raw("com.test.good"), testing::_))
+    EXPECT_CALL(*mockstore, verifyPackage(ubuntu::app_launch::AppID::Package::from_raw("com.test.good")))
         .WillOnce(testing::Return(true));
     EXPECT_CALL(*mockstore, verifyAppname(ubuntu::app_launch::AppID::Package::from_raw("com.test.good"),
-                                          ubuntu::app_launch::AppID::AppName::from_raw("application"), testing::_))
+                                          ubuntu::app_launch::AppID::AppName::from_raw("application")))
         .WillOnce(testing::Return(true));
     EXPECT_CALL(*mockstore, findVersion(ubuntu::app_launch::AppID::Package::from_raw("com.test.good"),
-                                        ubuntu::app_launch::AppID::AppName::from_raw("application"), testing::_))
+                                        ubuntu::app_launch::AppID::AppName::from_raw("application")))
         .WillOnce(testing::Return(ubuntu::app_launch::AppID::Version::from_raw("1.2.3")));
 
     /* Test with current-user-version, should return the version in the manifest */
     EXPECT_EQ("com.test.good_application_1.2.3",
               (std::string)ubuntu::app_launch::AppID::discover(registry, "com.test.good", "application"));
 
-    EXPECT_CALL(*mockstore, verifyPackage(ubuntu::app_launch::AppID::Package::from_raw("com.test.good"), testing::_))
+    EXPECT_CALL(*mockstore, verifyPackage(ubuntu::app_launch::AppID::Package::from_raw("com.test.good")))
         .WillOnce(testing::Return(true));
     EXPECT_CALL(*mockstore, verifyAppname(ubuntu::app_launch::AppID::Package::from_raw("com.test.good"),
-                                          ubuntu::app_launch::AppID::AppName::from_raw("application"), testing::_))
+                                          ubuntu::app_launch::AppID::AppName::from_raw("application")))
         .WillOnce(testing::Return(true));
     EXPECT_CALL(*mockstore,
                 hasAppId(ubuntu::app_launch::AppID{ubuntu::app_launch::AppID::Package::from_raw("com.test.good"),
                                                    ubuntu::app_launch::AppID::AppName::from_raw("application"),
-                                                   ubuntu::app_launch::AppID::Version::from_raw("1.2.4")},
-                         testing::_))
+                                                   ubuntu::app_launch::AppID::Version::from_raw("1.2.4")}))
         .WillOnce(testing::Return(true));
 
     /* Test with version specified, shouldn't even read the manifest */
     EXPECT_EQ("com.test.good_application_1.2.4",
               (std::string)ubuntu::app_launch::AppID::discover(registry, "com.test.good", "application", "1.2.4"));
 
-    EXPECT_CALL(*mockstore, verifyPackage(ubuntu::app_launch::AppID::Package::from_raw("com.test.good"), testing::_))
+    EXPECT_CALL(*mockstore, verifyPackage(ubuntu::app_launch::AppID::Package::from_raw("com.test.good")))
         .WillOnce(testing::Return(true));
     EXPECT_CALL(*mockstore, findAppname(ubuntu::app_launch::AppID::Package::from_raw("com.test.good"),
-                                        ubuntu::app_launch::AppID::ApplicationWildcard::FIRST_LISTED, testing::_))
+                                        ubuntu::app_launch::AppID::ApplicationWildcard::FIRST_LISTED))
         .WillOnce(testing::Return(ubuntu::app_launch::AppID::AppName::from_raw("application")));
     EXPECT_CALL(*mockstore, findVersion(ubuntu::app_launch::AppID::Package::from_raw("com.test.good"),
-                                        ubuntu::app_launch::AppID::AppName::from_raw("application"), testing::_))
+                                        ubuntu::app_launch::AppID::AppName::from_raw("application")))
         .WillOnce(testing::Return(ubuntu::app_launch::AppID::Version::from_raw("1.2.3")));
 
     /* Test with out a version or app, should return the version in the manifest */
@@ -483,79 +483,72 @@ TEST_F(LibUAL, ApplicationId)
                                                                "current-user-version"));
 
     /* Make sure we can select the app from a list correctly */
-    EXPECT_CALL(*mockstore,
-                verifyPackage(ubuntu::app_launch::AppID::Package::from_raw("com.test.multiple"), testing::_))
+    EXPECT_CALL(*mockstore, verifyPackage(ubuntu::app_launch::AppID::Package::from_raw("com.test.multiple")))
         .WillOnce(testing::Return(true));
     EXPECT_CALL(*mockstore, findAppname(ubuntu::app_launch::AppID::Package::from_raw("com.test.multiple"),
-                                        ubuntu::app_launch::AppID::ApplicationWildcard::FIRST_LISTED, testing::_))
+                                        ubuntu::app_launch::AppID::ApplicationWildcard::FIRST_LISTED))
         .WillOnce(testing::Return(ubuntu::app_launch::AppID::AppName::from_raw("first")));
     EXPECT_CALL(*mockstore, findVersion(ubuntu::app_launch::AppID::Package::from_raw("com.test.multiple"),
-                                        ubuntu::app_launch::AppID::AppName::from_raw("first"), testing::_))
+                                        ubuntu::app_launch::AppID::AppName::from_raw("first")))
         .WillOnce(testing::Return(ubuntu::app_launch::AppID::Version::from_raw("1.2.3")));
     EXPECT_EQ("com.test.multiple_first_1.2.3",
               (std::string)ubuntu::app_launch::AppID::discover(
                   registry, "com.test.multiple", ubuntu::app_launch::AppID::ApplicationWildcard::FIRST_LISTED));
 
-    EXPECT_CALL(*mockstore,
-                verifyPackage(ubuntu::app_launch::AppID::Package::from_raw("com.test.multiple"), testing::_))
+    EXPECT_CALL(*mockstore, verifyPackage(ubuntu::app_launch::AppID::Package::from_raw("com.test.multiple")))
         .WillOnce(testing::Return(true));
     EXPECT_CALL(*mockstore, findAppname(ubuntu::app_launch::AppID::Package::from_raw("com.test.multiple"),
-                                        ubuntu::app_launch::AppID::ApplicationWildcard::FIRST_LISTED, testing::_))
+                                        ubuntu::app_launch::AppID::ApplicationWildcard::FIRST_LISTED))
         .WillOnce(testing::Return(ubuntu::app_launch::AppID::AppName::from_raw("first")));
     EXPECT_CALL(*mockstore, findVersion(ubuntu::app_launch::AppID::Package::from_raw("com.test.multiple"),
-                                        ubuntu::app_launch::AppID::AppName::from_raw("first"), testing::_))
+                                        ubuntu::app_launch::AppID::AppName::from_raw("first")))
         .WillOnce(testing::Return(ubuntu::app_launch::AppID::Version::from_raw("1.2.3")));
     EXPECT_EQ("com.test.multiple_first_1.2.3",
               (std::string)ubuntu::app_launch::AppID::discover(registry, "com.test.multiple"));
 
-    EXPECT_CALL(*mockstore,
-                verifyPackage(ubuntu::app_launch::AppID::Package::from_raw("com.test.multiple"), testing::_))
+    EXPECT_CALL(*mockstore, verifyPackage(ubuntu::app_launch::AppID::Package::from_raw("com.test.multiple")))
         .WillOnce(testing::Return(true));
     EXPECT_CALL(*mockstore, findAppname(ubuntu::app_launch::AppID::Package::from_raw("com.test.multiple"),
-                                        ubuntu::app_launch::AppID::ApplicationWildcard::LAST_LISTED, testing::_))
+                                        ubuntu::app_launch::AppID::ApplicationWildcard::LAST_LISTED))
         .WillOnce(testing::Return(ubuntu::app_launch::AppID::AppName::from_raw("fifth")));
     EXPECT_CALL(*mockstore, findVersion(ubuntu::app_launch::AppID::Package::from_raw("com.test.multiple"),
-                                        ubuntu::app_launch::AppID::AppName::from_raw("fifth"), testing::_))
+                                        ubuntu::app_launch::AppID::AppName::from_raw("fifth")))
         .WillOnce(testing::Return(ubuntu::app_launch::AppID::Version::from_raw("1.2.3")));
     EXPECT_EQ("com.test.multiple_fifth_1.2.3",
               (std::string)ubuntu::app_launch::AppID::discover(
                   registry, "com.test.multiple", ubuntu::app_launch::AppID::ApplicationWildcard::LAST_LISTED));
 
-    EXPECT_CALL(*mockstore,
-                verifyPackage(ubuntu::app_launch::AppID::Package::from_raw("com.test.multiple"), testing::_))
+    EXPECT_CALL(*mockstore, verifyPackage(ubuntu::app_launch::AppID::Package::from_raw("com.test.multiple")))
         .WillOnce(testing::Return(true));
     EXPECT_CALL(*mockstore, findAppname(ubuntu::app_launch::AppID::Package::from_raw("com.test.multiple"),
-                                        ubuntu::app_launch::AppID::ApplicationWildcard::ONLY_LISTED, testing::_))
+                                        ubuntu::app_launch::AppID::ApplicationWildcard::ONLY_LISTED))
         .WillOnce(testing::Return(ubuntu::app_launch::AppID::AppName::from_raw("")));
     EXPECT_EQ("", (std::string)ubuntu::app_launch::AppID::discover(
                       registry, "com.test.multiple", ubuntu::app_launch::AppID::ApplicationWildcard::ONLY_LISTED));
 
-    EXPECT_CALL(*mockstore, verifyPackage(ubuntu::app_launch::AppID::Package::from_raw("com.test.good"), testing::_))
+    EXPECT_CALL(*mockstore, verifyPackage(ubuntu::app_launch::AppID::Package::from_raw("com.test.good")))
         .WillOnce(testing::Return(true));
     EXPECT_CALL(*mockstore, findAppname(ubuntu::app_launch::AppID::Package::from_raw("com.test.good"),
-                                        ubuntu::app_launch::AppID::ApplicationWildcard::ONLY_LISTED, testing::_))
+                                        ubuntu::app_launch::AppID::ApplicationWildcard::ONLY_LISTED))
         .WillOnce(testing::Return(ubuntu::app_launch::AppID::AppName::from_raw("application")));
     EXPECT_CALL(*mockstore, findVersion(ubuntu::app_launch::AppID::Package::from_raw("com.test.good"),
-                                        ubuntu::app_launch::AppID::AppName::from_raw("application"), testing::_))
+                                        ubuntu::app_launch::AppID::AppName::from_raw("application")))
         .WillOnce(testing::Return(ubuntu::app_launch::AppID::Version::from_raw("1.2.3")));
     EXPECT_EQ("com.test.good_application_1.2.3",
               (std::string)ubuntu::app_launch::AppID::discover(
                   registry, "com.test.good", ubuntu::app_launch::AppID::ApplicationWildcard::ONLY_LISTED));
 
     /* A bunch that should be NULL */
-    EXPECT_CALL(*mockstore,
-                verifyPackage(ubuntu::app_launch::AppID::Package::from_raw("com.test.no-hooks"), testing::_))
+    EXPECT_CALL(*mockstore, verifyPackage(ubuntu::app_launch::AppID::Package::from_raw("com.test.no-hooks")))
         .WillOnce(testing::Return(false));
     EXPECT_EQ("", (std::string)ubuntu::app_launch::AppID::discover(registry, "com.test.no-hooks"));
-    EXPECT_CALL(*mockstore, verifyPackage(ubuntu::app_launch::AppID::Package::from_raw("com.test.no-json"), testing::_))
+    EXPECT_CALL(*mockstore, verifyPackage(ubuntu::app_launch::AppID::Package::from_raw("com.test.no-json")))
         .WillOnce(testing::Return(false));
     EXPECT_EQ("", (std::string)ubuntu::app_launch::AppID::discover(registry, "com.test.no-json"));
-    EXPECT_CALL(*mockstore,
-                verifyPackage(ubuntu::app_launch::AppID::Package::from_raw("com.test.no-object"), testing::_))
+    EXPECT_CALL(*mockstore, verifyPackage(ubuntu::app_launch::AppID::Package::from_raw("com.test.no-object")))
         .WillOnce(testing::Return(false));
     EXPECT_EQ("", (std::string)ubuntu::app_launch::AppID::discover(registry, "com.test.no-object"));
-    EXPECT_CALL(*mockstore,
-                verifyPackage(ubuntu::app_launch::AppID::Package::from_raw("com.test.no-version"), testing::_))
+    EXPECT_CALL(*mockstore, verifyPackage(ubuntu::app_launch::AppID::Package::from_raw("com.test.no-version")))
         .WillOnce(testing::Return(false));
     EXPECT_EQ("", (std::string)ubuntu::app_launch::AppID::discover(registry, "com.test.no-version"));
 }
@@ -586,6 +579,30 @@ TEST_F(LibUAL, AppIdParse)
     return;
 }
 
+TEST_F(LibUAL, DBusID)
+{
+    auto id = ubuntu::app_launch::AppID::parse("container-name_test_0.0");
+    ASSERT_FALSE(id.empty());
+    EXPECT_EQ("container_2dname_5ftest_5f0_2e0", id.dbusID());
+    EXPECT_FALSE(ubuntu::app_launch::AppID::valid(id.dbusID()));
+
+    auto parsed = ubuntu::app_launch::AppID::parseDBusID(id.dbusID());
+    ASSERT_FALSE(parsed.empty());
+    EXPECT_EQ(id, parsed);
+}
+
+TEST_F(LibUAL, PersistentID)
+{
+    auto id = ubuntu::app_launch::AppID::parse("container-name_test_0.0");
+    ASSERT_FALSE(id.empty());
+    EXPECT_EQ("container-name_test", id.persistentID());
+    EXPECT_FALSE(ubuntu::app_launch::AppID::valid(id.persistentID()));
+
+    auto found = ubuntu::app_launch::AppID::find(registry, id.persistentID());
+    ASSERT_FALSE(found.empty());
+    EXPECT_EQ(id, found);
+}
+
 TEST_F(LibUAL, ApplicationList)
 {
     SnapdMock snapd{LOCAL_SNAPD_TEST_SOCKET, {u8Package, interfaces, u8Package}};
@@ -605,6 +622,27 @@ TEST_F(LibUAL, ApplicationList)
 
     EXPECT_EQ("multiple", (std::string)apps.front()->appId());
     EXPECT_EQ("unity8-package_foo_x123", (std::string)apps.back()->appId());
+}
+
+TEST_F(LibUAL, Equality)
+{
+    auto appid = ubuntu::app_launch::AppID::find(registry, "single");
+
+    auto black = std::make_shared<MockApp>(appid, registry->impl);
+    auto white = std::make_shared<MockApp>(appid, registry->impl);
+
+    /* The outside isn't equal */
+    EXPECT_NE(black, white);
+
+    /* The inside is */
+    EXPECT_EQ(*black, *white);
+
+    auto multiappid = ubuntu::app_launch::AppID::find(registry, "multiple");
+
+    auto cat = std::make_shared<MockApp>(appid, registry->impl);
+    auto dog = std::make_shared<MockApp>(multiappid, registry->impl);
+
+    EXPECT_NE(*cat, *dog);
 }
 
 TEST_F(LibUAL, StartingResponses)
@@ -1163,6 +1201,46 @@ TEST_F(LibUAL, MultiPause)
     g_spawn_command_line_sync("rm -rf " CMAKE_BINARY_DIR "/libual-proc", NULL, NULL, NULL, NULL);
 }
 
+TEST_F(LibUAL, AppInfoSignals)
+{
+    /* Setup the stores mock */
+    auto mockstore = std::make_shared<MockStore>(registry->impl);
+    registry =
+        std::make_shared<RegistryMock>(std::list<std::shared_ptr<ubuntu::app_launch::app_store::Base>>{mockstore},
+                                       std::shared_ptr<ubuntu::app_launch::jobs::manager::Base>{});
+
+    /* Build an app */
+    auto singleappid = ubuntu::app_launch::AppID::find(registry, "single");
+    auto myapp = std::make_shared<MockApp>(singleappid, registry->impl);
+
+    /* Setup an app added signal handler */
+    std::promise<ubuntu::app_launch::AppID> addedAppId;
+    ubuntu::app_launch::Registry::appAdded(registry).connect(
+        [&](const std::shared_ptr<ubuntu::app_launch::Application>& app) { addedAppId.set_value(app->appId()); });
+
+    mockstore->mock_signalAppAdded(myapp);
+
+    EXPECT_EVENTUALLY_FUTURE_EQ(singleappid, addedAppId.get_future());
+
+    /* Setup an info changed signal handler */
+    std::promise<ubuntu::app_launch::AppID> changedAppId;
+    ubuntu::app_launch::Registry::appInfoUpdated(registry).connect(
+        [&](const std::shared_ptr<ubuntu::app_launch::Application>& app) { changedAppId.set_value(app->appId()); });
+
+    mockstore->mock_signalAppInfoChanged(myapp);
+
+    EXPECT_EVENTUALLY_FUTURE_EQ(singleappid, changedAppId.get_future());
+
+    /* Setup an app removed signal handler */
+    std::promise<ubuntu::app_launch::AppID> removedAppId;
+    ubuntu::app_launch::Registry::appRemoved(registry).connect(
+        [&](const ubuntu::app_launch::AppID& appid) { removedAppId.set_value(appid); });
+
+    mockstore->mock_signalAppRemoved(singleappid);
+
+    EXPECT_EVENTUALLY_FUTURE_EQ(singleappid, removedAppId.get_future());
+}
+
 TEST_F(LibUAL, OOMSet)
 {
     g_setenv("UBUNTU_APP_LAUNCH_OOM_PROC_PATH", CMAKE_BINARY_DIR "/libual-proc", 1);
@@ -1286,13 +1364,7 @@ TEST_F(LibUAL, StartSessionHelper)
     });
     t.detach();
 
-    auto outputfuture = outputpromise.get_future();
-    while (outputfuture.wait_for(std::chrono::milliseconds{1}) != std::future_status::ready)
-    {
-        pause();
-    }
-
-    ASSERT_STREQ(filedata, outputfuture.get().c_str());
+    EXPECT_EVENTUALLY_FUTURE_EQ(std::string{filedata}, outputpromise.get_future());
 
     return;
 }
@@ -1385,7 +1457,7 @@ TEST_F(LibUAL, SetExec)
     std::vector<std::string> execList{"Foo", "Bar", "Really really really long value", "Another value"};
     ubuntu::app_launch::Helper::setExec(execList);
 
-    EXPECT_EQ(execList, socketpromise.get_future().get());
+    EXPECT_EVENTUALLY_FUTURE_EQ(execList, socketpromise.get_future());
 }
 
 TEST_F(LibUAL, AppInfo)

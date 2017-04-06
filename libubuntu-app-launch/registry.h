@@ -99,9 +99,8 @@ public:
 
         \param reg Registry to get the handler from
     */
-    static core::Signal<const std::shared_ptr<Application>&,
-                        const std::shared_ptr<Application::Instance>&,
-                        FailureType>&
+    static core::
+        Signal<const std::shared_ptr<Application>&, const std::shared_ptr<Application::Instance>&, FailureType>&
         appFailed(const std::shared_ptr<Registry>& reg = getDefault());
 
     /** Get the signal object that is signaled when an application has been
@@ -137,6 +136,25 @@ public:
     */
     static core::Signal<const std::shared_ptr<Application>&>& appInfoUpdated(
         const std::shared_ptr<Registry>& reg = getDefault());
+
+    /** Get the signal object that is signaled when there is a new application
+        that has been added to the system.
+
+        \note This signal handler is activated on the UAL thread
+
+        \param reg Registry to get the handler from
+    */
+    static core::Signal<const std::shared_ptr<Application>&>& appAdded(
+        const std::shared_ptr<Registry>& reg = getDefault());
+
+    /** Get the signal object that is signaled when an application is
+        removed from the system.
+
+        \note This signal handler is activated on the UAL thread
+
+        \param reg Registry to get the handler from
+    */
+    static core::Signal<const AppID&>& appRemoved(const std::shared_ptr<Registry>& reg = getDefault());
 
     /** The Application Manager, almost always if you're not Unity8, don't
         use this API. Testing is a special case. Subclass this interface and
@@ -269,7 +287,10 @@ public:
     /** \private */
     class Impl;
     /** \private */
-    std::unique_ptr<Impl> impl;
+    std::shared_ptr<Impl> impl;
+
+protected:
+    Registry(const std::shared_ptr<Impl>& inimpl);
 };
 
 }  // namespace app_launch

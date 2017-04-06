@@ -39,25 +39,36 @@ class BaseInstance : public Helper::Instance
 {
 public:
     std::shared_ptr<jobs::instance::Base> impl;
+    Helper::Type type_;
 
-    BaseInstance(const std::shared_ptr<jobs::instance::Base>& inst);
-    BaseInstance(const std::shared_ptr<Application::Instance>& inst);
+    BaseInstance(const Helper::Type& type, const std::shared_ptr<jobs::instance::Base>& inst);
+    BaseInstance(const Helper::Type& type, const std::shared_ptr<Application::Instance>& inst);
 
     bool isRunning() override;
     void stop() override;
 
-    const std::string& getInstanceId()
+    const std::string& getInstanceId() const
     {
         return impl->getInstanceId();
+    }
+
+    const AppID& getAppId() const
+    {
+        return impl->getAppId();
+    }
+
+    const Helper::Type& getType() const
+    {
+        return type_;
     }
 };
 
 class Base : public Helper
 {
 public:
-    Base(const Helper::Type& type, const AppID& appid, const std::shared_ptr<Registry>& registry);
+    Base(const Helper::Type& type, const AppID& appid, const std::shared_ptr<Registry::Impl>& registry);
 
-    AppID appId() override;
+    AppID appId() const override;
 
     bool hasInstances() override;
     std::vector<std::shared_ptr<Helper::Instance>> instances() override;
@@ -67,10 +78,15 @@ public:
 
     std::shared_ptr<Helper::Instance> existingInstance(const std::string& instanceid);
 
+    const Helper::Type& getType() const
+    {
+        return _type;
+    }
+
 private:
     Helper::Type _type;
     AppID _appid;
-    std::shared_ptr<Registry> _registry;
+    std::shared_ptr<Registry::Impl> registry_;
 
     std::list<std::pair<std::string, std::string>> defaultEnv();
 };

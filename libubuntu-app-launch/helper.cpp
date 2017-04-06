@@ -49,13 +49,15 @@ namespace helper_impls
  * Instance
  **********************/
 
-BaseInstance::BaseInstance(const std::shared_ptr<jobs::instance::Base>& inst)
+BaseInstance::BaseInstance(const Helper::Type& type, const std::shared_ptr<jobs::instance::Base>& inst)
     : impl{inst}
+    , type_(type)
 {
 }
 
-BaseInstance::BaseInstance(const std::shared_ptr<Application::Instance>& inst)
+BaseInstance::BaseInstance(const Helper::Type& type, const std::shared_ptr<Application::Instance>& inst)
     : impl{std::dynamic_pointer_cast<jobs::instance::Base>(inst)}
+    , type_(type)
 {
 }
 
@@ -73,14 +75,14 @@ void BaseInstance::stop()
  * Helper Class
  **********************/
 
-Base::Base(const Helper::Type& type, const AppID& appid, const std::shared_ptr<Registry>& registry)
+Base::Base(const Helper::Type& type, const AppID& appid, const std::shared_ptr<Registry::Impl>& registry)
     : _type(type)
     , _appid(appid)
-    , _registry(registry)
+    , registry_(registry)
 {
 }
 
-AppID Base::appId()
+AppID Base::appId() const
 {
     return _appid;
 }
@@ -92,11 +94,12 @@ bool Base::hasInstances()
 
 std::vector<std::shared_ptr<Helper::Instance>> Base::instances()
 {
-    auto insts = _registry->impl->jobs->instances(_appid, _type.value());
+    auto insts = registry_->jobs()->instances(_appid, _type.value());
     std::vector<std::shared_ptr<Helper::Instance>> wrapped{insts.size()};
 
-    std::transform(insts.begin(), insts.end(), wrapped.begin(),
-                   [](std::shared_ptr<jobs::instance::Base>& inst) { return std::make_shared<BaseInstance>(inst); });
+    std::transform(insts.begin(), insts.end(), wrapped.begin(), [this](std::shared_ptr<jobs::instance::Base>& inst) {
+        return std::make_shared<BaseInstance>(_type, inst);
+    });
 
     return wrapped;
 }
@@ -104,9 +107,9 @@ std::vector<std::shared_ptr<Helper::Instance>> Base::instances()
 /** Find an instance that we already know the ID of */
 std::shared_ptr<Helper::Instance> Base::existingInstance(const std::string& instanceid)
 {
-    auto appinst = _registry->impl->jobs->existing(_appid, _type.value(), instanceid, {});
+    auto appinst = registry_->jobs()->existing(_appid, _type.value(), instanceid, {});
 
-    return std::make_shared<BaseInstance>(appinst);
+    return std::make_shared<BaseInstance>(_type, appinst);
 }
 
 std::string genInstanceId()
@@ -212,14 +215,16 @@ std::shared_ptr<Helper::Instance> Base::launch(std::vector<Helper::URL> urls)
     auto defaultenv = defaultEnv();
     std::function<std::list<std::pair<std::string, std::string>>()> envfunc = [defaultenv]() { return defaultenv; };
 
-    return std::make_shared<BaseInstance>(_registry->impl->jobs->launch(
-        _appid, _type.value(), genInstanceId(), appURL(urls), jobs::manager::launchMode::STANDARD, envfunc));
+    return std::make_shared<BaseInstance>(
+        _type,
+        registry_->jobs()->launch(_appid, _type.value(), genInstanceId(), appURL(urls),
+                                  jobs::manager::launchMode::STANDARD, envfunc));
 }
 
 class MirFDProxy
 {
 public:
-    std::shared_ptr<Registry> reg_;
+    std::shared_ptr<Registry::Impl> reg_;
     ResourcePtr<int, void (*)(int)> mirfd;
     std::shared_ptr<proxySocketDemangler> skel;
     ManagedSignalConnection<proxySocketDemangler> handle;
@@ -227,7 +232,7 @@ public:
     std::string name;
     guint timeout{0};
 
-    MirFDProxy(MirPromptSession* session, const AppID& appid, const std::shared_ptr<Registry>& reg)
+    MirFDProxy(MirPromptSession* session, const AppID& appid, const std::shared_ptr<Registry::Impl>& reg)
         : reg_(reg)
         , mirfd(0,
                 [](int fp) {
@@ -235,7 +240,7 @@ public:
                         close(fp);
                 })
         , handle(SignalUnsubscriber<proxySocketDemangler>{})
-        , name(g_dbus_connection_get_unique_name(reg->impl->_dbus.get()))
+        , name(g_dbus_connection_get_unique_name(reg->_dbus.get()))
     {
         if (appid.empty())
         {
@@ -268,7 +273,7 @@ public:
         }
 
         /* Setup the DBus interface */
-        std::tie(skel, handle, path) = reg->impl->thread.executeOnThread<std::tuple<
+        std::tie(skel, handle, path) = reg->thread.executeOnThread<std::tuple<
             std::shared_ptr<proxySocketDemangler>, ManagedSignalConnection<proxySocketDemangler>, std::string>>(
             [this, appid, reg]() {
                 auto skel = share_gobject(proxy_socket_demangler_skeleton_new());
@@ -277,7 +282,7 @@ public:
                     skel);
 
                 /* Find a path to export on */
-                auto dbusAppid = dbusSafe(std::string{appid});
+                auto dbusAppid = appid.dbusID();
                 std::string path;
 
                 while (path.empty())
@@ -285,7 +290,7 @@ public:
                     GError* error = nullptr;
                     std::string tryname = "/com/canonical/UbuntuAppLaunch/" + dbusAppid + "/" + std::to_string(rand());
 
-                    g_dbus_interface_skeleton_export(G_DBUS_INTERFACE_SKELETON(skel.get()), reg->impl->_dbus.get(),
+                    g_dbus_interface_skeleton_export(G_DBUS_INTERFACE_SKELETON(skel.get()), reg->_dbus.get(),
                                                      tryname.c_str(), &error);
 
                     if (error == nullptr)
@@ -319,13 +324,6 @@ public:
         timeout = timeoutin;
     }
 
-    static std::string dbusSafe(const std::string& in)
-    {
-        std::string out = in;
-        std::transform(out.begin(), out.end(), out.begin(), [](char in) { return std::isalpha(in) ? in : '_'; });
-        return out;
-    }
-
     bool proxyCb(GDBusMethodInvocation* invocation)
     {
         if (mirfd.get() == 0)
@@ -355,7 +353,7 @@ public:
         auto reg = reg_;
         auto timeoutlocal = timeout;
 
-        reg->impl->thread.executeOnThread([reg, timeoutlocal]() { reg->impl->thread.removeSource(timeoutlocal); });
+        reg->thread.executeOnThread([reg, timeoutlocal]() { reg->thread.removeSource(timeoutlocal); });
 
         return true;
     }
@@ -381,7 +379,7 @@ std::shared_ptr<Helper::Instance> Base::launch(MirPromptSession* session, std::v
     std::shared_ptr<MirFDProxy> proxy;
     try
     {
-        proxy = std::make_shared<MirFDProxy>(session, _appid, _registry);
+        proxy = std::make_shared<MirFDProxy>(session, _appid, registry_);
     }
     catch (std::runtime_error& e)
     {
@@ -401,11 +399,12 @@ std::shared_ptr<Helper::Instance> Base::launch(MirPromptSession* session, std::v
 
     /* This will maintain a reference to the proxy for two
        seconds. And then it'll be dropped. */
-    proxy->setTimeout(
-        _registry->impl->thread.timeout(std::chrono::seconds{2}, [proxy]() { g_debug("Mir Proxy Timeout"); }));
+    proxy->setTimeout(registry_->thread.timeout(std::chrono::seconds{2}, [proxy]() { g_debug("Mir Proxy Timeout"); }));
 
-    return std::make_shared<BaseInstance>(_registry->impl->jobs->launch(
-        _appid, _type.value(), genInstanceId(), appURL(urls), jobs::manager::launchMode::STANDARD, envfunc));
+    return std::make_shared<BaseInstance>(
+        _type,
+        registry_->jobs()->launch(_appid, _type.value(), genInstanceId(), appURL(urls),
+                                  jobs::manager::launchMode::STANDARD, envfunc));
 }
 
 }  // namespace helper_impl
@@ -416,8 +415,43 @@ std::shared_ptr<Helper::Instance> Base::launch(MirPromptSession* session, std::v
 
 std::shared_ptr<Helper> Helper::create(Type type, AppID appid, std::shared_ptr<Registry> registry)
 {
-    /* Only one type today */
-    return std::make_shared<helper_impls::Base>(type, appid, registry);
+    return registry->impl->createHelper(type, appid, registry->impl);
+}
+
+bool Helper::operator==(const Helper& b) const
+{
+    auto ja = dynamic_cast<const helper_impls::Base*>(this);
+    auto jb = dynamic_cast<const helper_impls::Base*>(&b);
+
+    return ja->appId() == jb->appId() && ja->getType() == jb->getType();
+}
+
+bool Helper::operator!=(const Helper& b) const
+{
+    auto ja = dynamic_cast<const helper_impls::Base*>(this);
+    auto jb = dynamic_cast<const helper_impls::Base*>(&b);
+
+    return ja->appId() != jb->appId() || ja->getType() != jb->getType();
+}
+
+bool Helper::Instance::operator==(const Helper::Instance& b) const
+{
+    auto ja = dynamic_cast<const helper_impls::BaseInstance*>(this);
+    auto jb = dynamic_cast<const helper_impls::BaseInstance*>(&b);
+
+    return ja->getAppId() == jb->getAppId() &&         /* AppID */
+           ja->getType() == jb->getType() &&           /* Type */
+           ja->getInstanceId() == jb->getInstanceId(); /* Instance ID */
+}
+
+bool Helper::Instance::operator!=(const Helper::Instance& b) const
+{
+    auto ja = dynamic_cast<const helper_impls::BaseInstance*>(this);
+    auto jb = dynamic_cast<const helper_impls::BaseInstance*>(&b);
+
+    return ja->getAppId() != jb->getAppId() ||         /* AppID */
+           ja->getType() != jb->getType() ||           /* Type */
+           ja->getInstanceId() != jb->getInstanceId(); /* Instance ID */
 }
 
 /* Hardcore socket stuff */

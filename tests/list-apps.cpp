@@ -59,13 +59,14 @@ protected:
 
         libertine = std::make_shared<LibertineService>();
         dbus_test_service_add_task(service, *libertine);
-        dbus_test_service_add_task(service, libertine->waitTask());
 
         dbus_test_service_start_tasks(service);
 
         bus = g_bus_get_sync(G_BUS_TYPE_SESSION, nullptr, nullptr);
         g_dbus_connection_set_exit_on_close(bus, FALSE);
         g_object_add_weak_pointer(G_OBJECT(bus), (gpointer*)&bus);
+
+        ASSERT_EVENTUALLY_FUNC_EQ(false, std::function<bool()>{[&] { return libertine->getUniqueName().empty(); }});
     }
 
     virtual void TearDown()
@@ -139,8 +140,8 @@ protected:
 TEST_F(ListApps, ListLegacy)
 {
     auto registry = std::make_shared<ubuntu::app_launch::Registry>();
-    ubuntu::app_launch::app_store::Legacy store;
-    auto apps = store.list(registry);
+    ubuntu::app_launch::app_store::Legacy store(registry->impl);
+    auto apps = store.list();
 
     printApps(apps);
 
@@ -154,8 +155,8 @@ TEST_F(ListApps, ListLegacy)
 TEST_F(ListApps, ListLibertine)
 {
     auto registry = std::make_shared<ubuntu::app_launch::Registry>();
-    ubuntu::app_launch::app_store::Libertine store;
-    auto apps = store.list(registry);
+    ubuntu::app_launch::app_store::Libertine store(registry->impl);
+    auto apps = store.list();
 
     printApps(apps);
 
@@ -197,8 +198,8 @@ TEST_F(ListApps, ListSnap)
                     interfaces, x11Package, x11Package, x11Package}};                  /* x11 check */
     auto registry = std::make_shared<ubuntu::app_launch::Registry>();
 
-    ubuntu::app_launch::app_store::Snap store;
-    auto apps = store.list(registry);
+    ubuntu::app_launch::app_store::Snap store(registry->impl);
+    auto apps = store.list();
 
     printApps(apps);
 
